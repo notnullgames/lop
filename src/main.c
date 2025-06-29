@@ -27,7 +27,6 @@ bool Init(pntr_app* app) {
 
 bool Update(pntr_app* app, pntr_image* screen) {
   appScreen = screen;
-  pntr_clear_background(screen, PNTR_BLACK);
   adventure_map_update(app, screen);
   return true;
 }

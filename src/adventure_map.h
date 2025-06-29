@@ -83,6 +83,17 @@ float pntr_tiled_object_get_float(cute_tiled_object_t* object, const char* prope
     return default_value;
 }
 
+// General helper to get a pntr_color from a tiled color
+pntr_color pntr_tiled_color(uint32_t color) {
+    if (color > 0xFFFFFF) {
+        // Has alpha channel
+        return pntr_new_color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, (color >> 24) & 0xFF);
+    } else {
+        // No alpha, default to fully opaque
+        return pntr_new_color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 0xFF);
+    }
+}
+
 // Unload the current map
 void adventure_map_unload() {
   if (currentMap != NULL) {
@@ -284,6 +295,13 @@ void adventure_map_update(pntr_app* app, pntr_image* screen) {
 
     int camera_x = (int)(currentMap->player->x - screen->width / 2);
     int camera_y = (int)(currentMap->player->y - screen->height / 2);
+    
+    if (currentMap->map->backgroundcolor) {
+      pntr_clear_background(screen, pntr_tiled_color(currentMap->map->backgroundcolor));
+    } else {
+      pntr_clear_background(screen, PNTR_BLACK);
+    }
+
     pntr_draw_tiled(screen, currentMap->map, -camera_x, -camera_y, PNTR_WHITE);
 
     if (currentMap && currentMap->map && currentMap->objects && currentMap->player) {
