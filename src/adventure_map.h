@@ -1,6 +1,8 @@
 // This wraps  map with a few helpers for a specific game-type (top-down roguelike adventure)
 // The idea is that all the objects in the map get an intiial-state on load, then 
 
+#include <math.h>
+
 // a direction a player can face
 typedef enum {
   ADVENTURE_DIRECTION_NONE,
@@ -63,6 +65,7 @@ const char*  pntr_tiled_object_get_string(cute_tiled_object_t* object, const cha
       }
     }
   }
+  printf("string prop not found: %s->%s\n", object->name.ptr, property_name);
   return NULL;
 }
 
@@ -80,6 +83,25 @@ float pntr_tiled_object_get_float(cute_tiled_object_t* object, const char* prope
             }
         }
     }
+    printf("float prop not found: %s->%s\n", object->name.ptr, property_name);
+    return default_value;
+}
+
+// General helper to get a int-property from a tiled object
+float pntr_tiled_object_get_int(cute_tiled_object_t* object, const char* property_name, int default_value) {
+    if (object == NULL || property_name == NULL) {
+        return default_value;
+    }
+    for (int i = 0; i < object->property_count; i++) {
+        cute_tiled_property_t* prop = &object->properties[i];
+        
+        if (prop->name.ptr != NULL && strcmp(prop->name.ptr, property_name) == 0) {
+            if (prop->type == CUTE_TILED_PROPERTY_INT) {
+                return prop->data.integer;
+            }
+        }
+    }
+    printf("int prop not found: %s->%s\n", object->name.ptr, property_name);
     return default_value;
 }
 
@@ -168,11 +190,11 @@ bool adventure_map_check_collision(float x, float y, pntr_rectangle hitbox) {
     float hitbox_top = y + hitbox.y;
     float hitbox_bottom = y + hitbox.y + hitbox.height;
 
-    // Convert pixel coordinates to tile coordinates
-    int tile_left = (int)(hitbox_left / currentMap->map->tilewidth);
-    int tile_right = (int)(hitbox_right / currentMap->map->tilewidth);
-    int tile_top = (int)(hitbox_top / currentMap->map->tileheight);
-    int tile_bottom = (int)(hitbox_bottom / currentMap->map->tileheight);
+    // Convert pixel coordinates to tile coordinates with offset correction
+    int tile_left = (int)floor(hitbox_left / currentMap->map->tilewidth);
+    int tile_right = (int)floor((hitbox_right - 1) / currentMap->map->tilewidth);
+    int tile_top = (int)floor(hitbox_top / currentMap->map->tileheight) - 1;  // Subtract 1 tile
+    int tile_bottom = (int)floor((hitbox_bottom - 1) / currentMap->map->tileheight) - 1;  // Subtract 1 tile
 
     // Check bounds to avoid accessing invalid tiles
     if (tile_left < 0) tile_left = 0;
@@ -194,6 +216,8 @@ bool adventure_map_check_collision(float x, float y, pntr_rectangle hitbox) {
 
     return false;
 }
+
+
 
 
 // check for objects collision on "objects" layer
@@ -268,7 +292,7 @@ void adventure_game_try_to_move(AdventureDirection direction) {
 }
 
 void adventure_map_update(pntr_app* app, pntr_image* screen) {
-  pntr_update_tiled(currentMap->map, pntr_app_delta_time(app));
+  pntr_update_tiled(currentMap->map,  pntr_app_delta_time(app));
 
   if (currentMap->player != NULL) {
     bool keyLeft = pntr_app_key_down(app, PNTR_APP_KEY_LEFT);
