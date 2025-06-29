@@ -18,8 +18,47 @@ static cute_tiled_map_t* dialog;
 
 // implement these game-specific functions, as sort of callbacks
 
+/*
+
+Character animations work like this:
+
+[S, A, B]
+still, A/B (walking)
+
+*/
+
 // called when object (player, enemy, thing) needs to be drawn
 void adventure_map_object_draw(cute_tiled_map_t* map, cute_tiled_layer_t* objects, cute_tiled_object_t* object, AdventureDirection direction, bool walking, bool collided, int camera_x, int camera_y) {
+  if (strcmp(object->name.ptr, "player") == 0) {
+    if (direction == ADVENTURE_DIRECTION_SOUTH) {
+      if (walking) {
+        object->gid = 2;
+      }else {
+        object->gid = 1;
+      }
+    } else if (direction == ADVENTURE_DIRECTION_NORTH) {
+      if (walking) {
+        object->gid = 5;
+      } else {
+        object->gid = 4;
+      }
+    }  else if (direction == ADVENTURE_DIRECTION_EAST) {
+      if (walking) {
+        object->gid = 8;
+      } else {
+        object->gid = 7;
+      }
+    } else if (direction == ADVENTURE_DIRECTION_WEST) {
+      if (walking) {
+        object->gid = 11;
+      }else {
+        object->gid = 10;
+      }
+    } else {
+      object->gid = 1;
+    }
+  }
+
   pntr_draw_tiled_tile(myApp->screen, map, object->gid, object->x - camera_x, object->y - camera_y-16, PNTR_WHITE);
 }
 
@@ -30,7 +69,7 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
     snprintf(filename, sizeof(filename), "assets/%s.tmj", other->name.ptr);
     portalPosition.x =  pntr_tiled_object_get_int(other, "pos_x", 0);
     portalPosition.y = pntr_tiled_object_get_int(other, "pos_y", 0);
-    printf("transporting: %s %dx%d\n", other->name.ptr, portalPosition.x, portalPosition.y);
+    // printf("transporting: %s %dx%d\n", other->name.ptr, portalPosition.x, portalPosition.y);
     adventure_map_load(filename, &portalPosition, ADVENTURE_DIRECTION_NONE);
     return;
   }

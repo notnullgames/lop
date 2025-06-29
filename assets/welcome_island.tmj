@@ -213,7 +213,7 @@
          "name":"objects",
          "objects":[
                 {
-                 "gid":1,
+                 "gid":2,
                  "height":16,
                  "id":1,
                  "name":"player",

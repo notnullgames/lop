@@ -34,7 +34,8 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
 
 static AdventureMap* currentMap;
 
-static float walkAmount = 2.0f;
+// this is the speed the player walks, and is determined by player's animation-speed
+static float walkSpeed = 2.0f;
 
 
 // General helper to find an object by name on an object-layer
@@ -105,6 +106,27 @@ float pntr_tiled_object_get_int(cute_tiled_object_t* object, const char* propert
     return default_value;
 }
 
+// Get animations frames info from a gid
+cute_tiled_frame_t* pntr_tiled_animation_frames(cute_tiled_map_t* map, int gid, int* frame_count) {
+    if (gid <= 0 || !map || !frame_count) {
+        *frame_count = 0;
+        return NULL;
+    }
+    
+    // Get the pntr_tiled internal tile data
+    pntr_tiled_tile* tiles = (pntr_tiled_tile*)map->tiledversion.ptr;
+    pntr_tiled_tile* tile = tiles + gid - 1;
+    
+    // Check if this tile has a descriptor with animation data
+    if (tile->descriptor && tile->descriptor->frame_count > 0) {
+        *frame_count = tile->descriptor->frame_count;
+        return tile->descriptor->animation; // This is the cute_tiled_frame_t array
+    }
+    
+    *frame_count = 0;
+    return NULL;
+}
+
 // General helper to get a pntr_color from a tiled color
 pntr_color pntr_tiled_color(uint32_t color) {
     if (color > 0xFFFFFF) {
@@ -124,6 +146,7 @@ void adventure_map_unload() {
   }
 }
 
+// Load a tiled map and set things up
 void adventure_map_load(const char* filename, pntr_vector* position, AdventureDirection direction) {
   if (currentMap != NULL) {
     adventure_map_unload();
@@ -162,12 +185,21 @@ void adventure_map_load(const char* filename, pntr_vector* position, AdventureDi
       currentMap->player->y = position->y;
     }
 
+    // set player hitbox from props or defaults
     currentMap->player_hitbox = (pntr_rectangle) {
       .x = pntr_tiled_object_get_float(currentMap->player, "hit_x", 4),
       .y = pntr_tiled_object_get_float(currentMap->player, "hit_y", 8),
       .width = pntr_tiled_object_get_float(currentMap->player, "hit_width", 8),
       .height = pntr_tiled_object_get_float(currentMap->player, "hit_height", 8),
     };
+
+    // try to figure out speed from first frame of animation
+    int frame_count = 0;
+    cute_tiled_frame_t* playerFrame = pntr_tiled_animation_frames(currentMap->map, currentMap->player->gid, &frame_count);
+    if (playerFrame != NULL) {
+      // printf("player frames: %dms * %d frames\n", playerFrame->duration, frame_count);
+      walkSpeed = playerFrame->duration / 250.0f;
+    }
   }
 
   currentMap->direction = direction;
@@ -261,17 +293,18 @@ void adventure_game_try_to_move(AdventureDirection direction) {
     float newx = x;
     float newy = y;
     if (direction == ADVENTURE_DIRECTION_NORTH) {
-      newy -= walkAmount;
+      newy -= walkSpeed;
     } else if (direction == ADVENTURE_DIRECTION_SOUTH) {
-      newy += walkAmount;
+      newy += walkSpeed;
     } else if (direction == ADVENTURE_DIRECTION_EAST) {
-      newx += walkAmount;
+      newx += walkSpeed;
     } else if (direction == ADVENTURE_DIRECTION_WEST) {
-      newx -= walkAmount;
+      newx -= walkSpeed;
     }
 
     currentMap->walking = false;
     currentMap->collided = true;
+    currentMap->direction = direction;
 
     bool wallCollision = adventure_map_check_collision(newx, newy, currentMap->player_hitbox);
     cute_tiled_object_t* colidedObject =  adventure_map_check_object_collision(newx, newy, currentMap->player_hitbox, "player");
@@ -289,6 +322,11 @@ void adventure_game_try_to_move(AdventureDirection direction) {
       adventure_map_object_touch(currentMap->map, currentMap->objects, currentMap->player, colidedObject);
     }
   }
+}
+
+// get the current map
+AdventureMap* adventure_map_get() {
+  return &currentMap;
 }
 
 void adventure_map_update(pntr_app* app, pntr_image* screen) {

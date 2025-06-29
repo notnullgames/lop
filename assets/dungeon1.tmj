@@ -94,7 +94,7 @@
                  "y":48
                 }, 
                 {
-                 "gid":61,
+                 "gid":63,
                  "height":16,
                  "id":3,
                  "name":"skeleton",
@@ -106,7 +106,7 @@
                  "y":80
                 }, 
                 {
-                 "gid":1,
+                 "gid":2,
                  "height":16,
                  "id":4,
                  "name":"player",
@@ -144,138 +144,6 @@
                  "y":80
                 }, 
                 {
-                 "gid":73,
-                 "height":16,
-                 "id":6,
-                 "name":"bat",
-                 "properties":[
-                        {
-                         "name":"hit_height",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_width",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_x",
-                         "type":"float",
-                         "value":0
-                        }, 
-                        {
-                         "name":"hit_y",
-                         "type":"float",
-                         "value":0
-                        }],
-                 "rotation":0,
-                 "type":"enemy",
-                 "visible":true,
-                 "width":16,
-                 "x":32,
-                 "y":48
-                }, 
-                {
-                 "gid":73,
-                 "height":16,
-                 "id":12,
-                 "name":"bat",
-                 "properties":[
-                        {
-                         "name":"hit_height",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_width",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_x",
-                         "type":"float",
-                         "value":0
-                        }, 
-                        {
-                         "name":"hit_y",
-                         "type":"float",
-                         "value":0
-                        }],
-                 "rotation":0,
-                 "type":"enemy",
-                 "visible":true,
-                 "width":16,
-                 "x":32,
-                 "y":112
-                }, 
-                {
-                 "gid":73,
-                 "height":16,
-                 "id":13,
-                 "name":"bat",
-                 "properties":[
-                        {
-                         "name":"hit_height",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_width",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_x",
-                         "type":"float",
-                         "value":0
-                        }, 
-                        {
-                         "name":"hit_y",
-                         "type":"float",
-                         "value":0
-                        }],
-                 "rotation":0,
-                 "type":"enemy",
-                 "visible":true,
-                 "width":16,
-                 "x":96,
-                 "y":112
-                }, 
-                {
-                 "gid":73,
-                 "height":16,
-                 "id":14,
-                 "name":"bat",
-                 "properties":[
-                        {
-                         "name":"hit_height",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_width",
-                         "type":"float",
-                         "value":16
-                        }, 
-                        {
-                         "name":"hit_x",
-                         "type":"float",
-                         "value":0
-                        }, 
-                        {
-                         "name":"hit_y",
-                         "type":"float",
-                         "value":0
-                        }],
-                 "rotation":0,
-                 "type":"enemy",
-                 "visible":true,
-                 "width":16,
-                 "x":96,
-                 "y":48
-                }, 
-                {
                  "gid":154,
                  "height":16,
                  "id":15,
@@ -300,7 +168,7 @@
                  "y":80
                 }, 
                 {
-                 "gid":124,
+                 "gid":127,
                  "height":16,
                  "id":17,
                  "name":"",
@@ -314,19 +182,6 @@
                 {
                  "gid":160,
                  "height":16,
-                 "id":19,
-                 "name":"fireholes",
-                 "rotation":0,
-                 "type":"trap",
-                 "visible":true,
-                 "width":16,
-                 "x":64,
-                 "y":144
-                },
-            
-                {
-                 "gid":160,
-                 "height":16,
                  "id":23,
                  "name":"fireholes",
                  "rotation":0,
@@ -337,40 +192,101 @@
                  "y":128
                 }, 
                 {
-                 "gid":160,
+                 "gid":124,
                  "height":16,
-                 "id":24,
-                 "name":"fireholes",
+                 "id":30,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":32,
+                 "y":16
+                }, 
+                {
+                 "gid":124,
+                 "height":16,
+                 "id":31,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":96,
+                 "y":16
+                }, 
+                {
+                 "gid":157,
+                 "height":16,
+                 "id":32,
+                 "name":"fire",
                  "rotation":0,
                  "type":"trap",
                  "visible":true,
                  "width":16,
-                 "x":112,
-                 "y":32
+                 "x":48,
+                 "y":144
                 }, 
                 {
-                 "gid":160,
+                 "gid":157,
                  "height":16,
-                 "id":25,
-                 "name":"fireholes",
+                 "id":34,
+                 "name":"fire",
                  "rotation":0,
                  "type":"trap",
                  "visible":true,
                  "width":16,
-                 "x":128,
-                 "y":112
-                }, 
+                 "x":80,
+                 "y":128
+                },
+            
                 {
-                 "gid":160,
+                 "gid":157,
                  "height":16,
-                 "id":26,
-                 "name":"fireholes",
+                 "id":35,
+                 "name":"fire",
                  "rotation":0,
                  "type":"trap",
                  "visible":true,
                  "width":16,
                  "x":112,
                  "y":144
+                }, 
+                {
+                 "gid":157,
+                 "height":16,
+                 "id":36,
+                 "name":"fire",
+                 "rotation":0,
+                 "type":"trap",
+                 "visible":true,
+                 "width":16,
+                 "x":144,
+                 "y":112
+                }, 
+                {
+                 "gid":157,
+                 "height":16,
+                 "id":37,
+                 "name":"fire",
+                 "rotation":0,
+                 "type":"trap",
+                 "visible":true,
+                 "width":16,
+                 "x":112,
+                 "y":96
+                }, 
+                {
+                 "gid":157,
+                 "height":16,
+                 "id":38,
+                 "name":"fire",
+                 "rotation":0,
+                 "type":"trap",
+                 "visible":true,
+                 "width":16,
+                 "x":112,
+                 "y":32
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -379,7 +295,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":27,
+ "nextobjectid":39,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
