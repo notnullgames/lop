@@ -256,7 +256,7 @@ cute_tiled_object_t* adventure_map_check_object_collision(float x, float y, pntr
   }
   cute_tiled_object_t* obj = currentMap->objects->objects;
   while (obj != NULL) {
-    if (strcmp(originatingName, obj->name.ptr) != 0) {
+    if (strcmp(originatingName, obj->name.ptr) != 0 && obj->visible) {
       // Calculate object bounds
       float obj_left = obj->x;
       float obj_right = obj->x + obj->width;

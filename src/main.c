@@ -5,6 +5,9 @@
 #define PNTR_TILED_EXTERNAL_TILESETS
 #include "pntr_tiled.h"
 
+#define PNTR_APP_SFX_IMPLEMENTATION
+#include "pntr_app_sfx.h"
+
 #include "adventure_map.h"
 
 
@@ -16,7 +19,8 @@ static pntr_font* font;
 // 20x15 map for making dialog background
 static cute_tiled_map_t* dialog;
 
-
+static pntr_sound* soundActivate;
+static pntr_sound* soundCoin;
 static pntr_sound* soundHurt;
 
 
@@ -31,51 +35,52 @@ static AdventureDirection playerDirection = ADVENTURE_DIRECTION_NONE;
 
 // called when object (player, enemy, thing) needs to be drawn
 void adventure_map_object_draw(cute_tiled_map_t* map, cute_tiled_layer_t* objects, cute_tiled_object_t* object, AdventureDirection direction, bool walking, bool collided, int camera_x, int camera_y) {
-  // handle player direction & animation
-  // TODO: I could put this in a general function for players & enemies
-  if (strcmp(object->name.ptr, "player") == 0) {
-    playerDirection = direction;
-    if (direction == ADVENTURE_DIRECTION_SOUTH) {
-      if (walking) {
-        object->gid = 2;
-      }else {
+  if (object->visible) {
+    // handle player direction & animation
+    // TODO: I could put this in a general function for players & enemies
+    if (strcmp(object->name.ptr, "player") == 0) {
+      playerDirection = direction;
+      if (direction == ADVENTURE_DIRECTION_SOUTH) {
+        if (walking) {
+          object->gid = 2;
+        }else {
+          object->gid = 1;
+        }
+      } else if (direction == ADVENTURE_DIRECTION_NORTH) {
+        if (walking) {
+          object->gid = 5;
+        } else {
+          object->gid = 4;
+        }
+      }  else if (direction == ADVENTURE_DIRECTION_EAST) {
+        if (walking) {
+          object->gid = 8;
+        } else {
+          object->gid = 7;
+        }
+      } else if (direction == ADVENTURE_DIRECTION_WEST) {
+        if (walking) {
+          object->gid = 11;
+        }else {
+          object->gid = 10;
+        }
+      } else {
         object->gid = 1;
       }
-    } else if (direction == ADVENTURE_DIRECTION_NORTH) {
-      if (walking) {
-        object->gid = 5;
-      } else {
-        object->gid = 4;
-      }
-    }  else if (direction == ADVENTURE_DIRECTION_EAST) {
-      if (walking) {
-        object->gid = 8;
-      } else {
-        object->gid = 7;
-      }
-    } else if (direction == ADVENTURE_DIRECTION_WEST) {
-      if (walking) {
-        object->gid = 11;
-      }else {
-        object->gid = 10;
-      }
-    } else {
-      object->gid = 1;
     }
-  }
 
-  // stop interactive animations in ~2 animaton-frames
-  if (animWheel++ > 120) {
-    switch(object->gid) {
-      // traps
-      case 158: object->gid = 157; break;
-      case 161: object->gid = 160; break;
-      case 164: object->gid = 163; break;
-      case 167: object->gid = 166; break;
+    // stop interactive animations in ~2 animaton-frames
+    if (animWheel++ > 120) {
+      switch(object->gid) {
+        // traps
+        case 158: object->gid = 157; break;
+        case 161: object->gid = 160; break;
+        case 164: object->gid = 163; break;
+        case 167: object->gid = 166; break;
+      }
     }
+    pntr_draw_tiled_tile(myApp->screen, map, object->gid, object->x - camera_x, object->y - camera_y-16, PNTR_WHITE);
   }
-
-  pntr_draw_tiled_tile(myApp->screen, map, object->gid, object->x - camera_x, object->y - camera_y-16, PNTR_WHITE);
 }
 
 // called when you player touches an object
@@ -86,6 +91,7 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
     portalPosition.x =  pntr_tiled_object_get_int(object, "pos_x", 0);
     portalPosition.y = pntr_tiled_object_get_int(object, "pos_y", 0);
     // printf("transporting: %s %dx%d\n", object->name.ptr, portalPosition.x, portalPosition.y);
+    pntr_play_sound(soundActivate, false);
     adventure_map_load(filename, &portalPosition, ADVENTURE_DIRECTION_NONE);
     return;
   }
@@ -93,15 +99,20 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
   // these might be seperate later
   if (strcmp(object->type.ptr, "sign") == 0 || strcmp(object->type.ptr, "musing") == 0) {
     signText = pntr_tiled_object_get_string(object, "text");
+    pntr_play_sound(soundActivate, false);
   }
+
+  if (strcmp(object->type.ptr, "loot") == 0) {
+    // You could use properties or name here to determine what the loot does, I am just hiding it
+    pntr_play_sound(soundCoin, false);
+    object->visible = false;
+  }
+  
 
   // TRAPS
   // look at gid to determine if it's been sprung
   if (object->gid == 157 || object->gid == 160 || object->gid == 163 || object->gid == 166){
     printf("trap! %s - %d\n", object->name.ptr, object->gid);
-
-    // for some reason on web I have to reload it
-    // soundHurt = pntr_load_sound("assets/sounds/hurt.ogg");
     pntr_play_sound(soundHurt, false);
   }
   switch(object->gid) {
@@ -110,7 +121,6 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
     case 163: object->gid = 164; break;
     case 166: object->gid = 167; break;
   }
-
 
   // all touches reset anim-wheeal
   animWheel = 0;
@@ -122,7 +132,16 @@ bool Init(pntr_app* app) {
   font = pntr_load_font_default();
   adventure_map_load("assets/welcome_island.tmj", NULL, ADVENTURE_DIRECTION_NONE);
 
-  soundHurt = pntr_load_sound("assets/sounds/hurt.ogg");
+  // load some SFX from https://raylibtech.itch.io/rfxgen
+  SfxParams sfx = {0};
+  pntr_app_sfx_load_params(&sfx, "assets/rfx/activate.rfx");
+  soundActivate =  pntr_app_sfx_sound(app, &sfx);
+
+  pntr_app_sfx_load_params(&sfx, "assets/rfx/coin.rfx");
+  soundCoin = pntr_app_sfx_sound(app, &sfx);
+
+  pntr_app_sfx_load_params(&sfx, "assets/rfx/hurt.rfx");
+  soundHurt =  pntr_app_sfx_sound(app, &sfx);
 
   return true;
 }

@@ -275,6 +275,42 @@
                  "width":16,
                  "x":144,
                  "y":144
+                }, 
+                {
+                 "gid":192,
+                 "height":16,
+                 "id":41,
+                 "name":"roopees",
+                 "rotation":0,
+                 "type":"loot",
+                 "visible":true,
+                 "width":16,
+                 "x":64,
+                 "y":128
+                }, 
+                {
+                 "gid":192,
+                 "height":16,
+                 "id":42,
+                 "name":"roopees",
+                 "rotation":0,
+                 "type":"loot",
+                 "visible":true,
+                 "width":16,
+                 "x":112,
+                 "y":48
+                }, 
+                {
+                 "gid":192,
+                 "height":16,
+                 "id":43,
+                 "name":"roopees",
+                 "rotation":0,
+                 "type":"loot",
+                 "visible":true,
+                 "width":16,
+                 "x":48,
+                 "y":64
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -283,7 +319,7 @@
          "y":0
         }],
  "nextlayerid":6,
- "nextobjectid":41,
+ "nextobjectid":44,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
