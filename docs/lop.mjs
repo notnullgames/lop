@@ -644,10 +644,10 @@ var wasmBinaryFile;
 
 function findWasmBinary() {
   if (Module['locateFile']) {
-    return locateFile('map_tester.wasm');
+    return locateFile('lop.wasm');
   }
   // Use bundler-friendly `new URL(..., import.meta.url)` pattern; works in browsers too.
-  return new URL('map_tester.wasm', import.meta.url).href;
+  return new URL('lop.wasm', import.meta.url).href;
 }
 
 function getBinarySync(file) {

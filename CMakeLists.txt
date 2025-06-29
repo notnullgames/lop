@@ -1,4 +1,4 @@
-project(map_tester)
+project(lop)
 
 cmake_minimum_required(VERSION 3.18)
 
