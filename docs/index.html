@@ -1,0 +1,23 @@
+<html>
+<head>
+  <title>Legend Of Pntr</title>
+  <style>
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      width: 1280px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script type="module">
+    import setupLop from './map_tester.mjs'
+    const lop = await setupLop({ canvas: document.getElementById('canvas') })
+  </script>
+</body>
+</html>
