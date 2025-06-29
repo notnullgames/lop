@@ -920,11 +920,12 @@ static char* _pntr_tiled_extract_json_value(const char* json, const char* key) {
 }
 
 // Main preprocessing function to embed external tilesets
+// Main preprocessing function to embed external tilesets
 static char* _pntr_tiled_preprocess_external_tilesets(const char* map_data, const char* base_dir) {
     if (!map_data) return NULL;
     
     size_t map_len = PNTR_STRLEN(map_data);
-    char* processed_data = (char*)pntr_load_memory(map_len * 3); // Extra space for embedding
+    char* processed_data = (char*)pntr_load_memory(map_len * 5); // More generous allocation
     if (!processed_data) return NULL;
     pntr_memory_copy(processed_data, (void*)map_data, map_len);
     processed_data[map_len] = '\0';
@@ -980,8 +981,48 @@ static char* _pntr_tiled_preprocess_external_tilesets(const char* map_data, cons
                 char* tilecount = _pntr_tiled_extract_json_value(tileset_json, "tilecount");
                 char* columns = _pntr_tiled_extract_json_value(tileset_json, "columns");
                 
+                // Extract the tiles array (contains animations and per-tile properties)
+                char* tiles_start = _pntr_tiled_strstr(tileset_json, "\"tiles\":");
+                char* tiles_content = NULL;
+                if (tiles_start) {
+                    tiles_start += 8; // Move past "tiles":
+                    // Skip whitespace
+                    while (*tiles_start == ' ' || *tiles_start == '\t' || *tiles_start == '\n' || *tiles_start == '\r') tiles_start++;
+                    
+                    if (*tiles_start == '[') {
+                        // Find the matching closing bracket
+                        int bracket_count = 0;
+                        char* tiles_end = tiles_start;
+                        do {
+                            if (*tiles_end == '[') bracket_count++;
+                            else if (*tiles_end == ']') bracket_count--;
+                            tiles_end++;
+                        } while (bracket_count > 0 && *tiles_end);
+                        
+                        if (bracket_count == 0) {
+                            size_t tiles_len = tiles_end - tiles_start;
+                            tiles_content = (char*)pntr_load_memory(tiles_len + 1);
+                            if (tiles_content) {
+                                pntr_memory_copy(tiles_content, tiles_start, tiles_len);
+                                tiles_content[tiles_len] = '\0';
+                            }
+                        }
+                    }
+                }
+                
+                // Calculate replacement size dynamically
+                size_t replacement_size = 1024; // Base size
+                if (image) replacement_size += PNTR_STRLEN(image) + 20;
+                if (imagewidth) replacement_size += PNTR_STRLEN(imagewidth) + 20;
+                if (imageheight) replacement_size += PNTR_STRLEN(imageheight) + 20;
+                if (tilewidth) replacement_size += PNTR_STRLEN(tilewidth) + 20;
+                if (tileheight) replacement_size += PNTR_STRLEN(tileheight) + 20;
+                if (tilecount) replacement_size += PNTR_STRLEN(tilecount) + 20;
+                if (columns) replacement_size += PNTR_STRLEN(columns) + 20;
+                if (tiles_content) replacement_size += PNTR_STRLEN(tiles_content) + 20;
+                
                 // Create replacement string with embedded properties
-                char* replacement = (char*)pntr_load_memory(2048);
+                char* replacement = (char*)pntr_load_memory(replacement_size);
                 if (replacement) {
                     replacement[0] = '\0';
                     
@@ -1020,6 +1061,11 @@ static char* _pntr_tiled_preprocess_external_tilesets(const char* map_data, cons
                         PNTR_STRCAT(replacement, columns);
                         PNTR_STRCAT(replacement, ",");
                     }
+                    if (tiles_content) {
+                        PNTR_STRCAT(replacement, "\"tiles\":");
+                        PNTR_STRCAT(replacement, tiles_content);
+                        PNTR_STRCAT(replacement, ",");
+                    }
                     
                     // Remove trailing comma
                     size_t rep_len = PNTR_STRLEN(replacement);
@@ -1056,6 +1102,7 @@ static char* _pntr_tiled_preprocess_external_tilesets(const char* map_data, cons
                 if (tileheight) pntr_unload_memory(tileheight);
                 if (tilecount) pntr_unload_memory(tilecount);
                 if (columns) pntr_unload_memory(columns);
+                if (tiles_content) pntr_unload_memory(tiles_content);
                 
                 pntr_unload_memory(tileset_json);
             }
@@ -1068,6 +1115,8 @@ static char* _pntr_tiled_preprocess_external_tilesets(const char* map_data, cons
     
     return processed_data;
 }
+
+
 
 // Replace the existing pntr_load_tiled function with external tileset support
 PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled(const char* fileName) {
