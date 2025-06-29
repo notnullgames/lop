@@ -49,6 +49,10 @@ bool Init(pntr_app* app) {
   return true;
 }
 
+void Event(pntr_app* app, pntr_app_event* event) {
+  // needs event handler to fire key events, but it's unused
+}
+
 bool Update(pntr_app* app, pntr_image* screen) {
   if (signText != NULL) {
     pntr_draw_tiled(screen, dialog, 0, 0, PNTR_WHITE);
@@ -76,6 +80,7 @@ pntr_app Main(int argc, char* argv[]) {
     .init = Init,
     .update = Update,
     .close = Close,
+    .event = Event,
     .fps = 60
   };
 }
