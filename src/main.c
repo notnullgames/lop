@@ -63,20 +63,24 @@ void adventure_map_object_draw(cute_tiled_map_t* map, cute_tiled_layer_t* object
 }
 
 // called when you player touches an object
-void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objects, cute_tiled_object_t* player, cute_tiled_object_t* other) {
-  if (strcmp(other->type.ptr, "portal") == 0) {
+void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objects, cute_tiled_object_t* player, cute_tiled_object_t* object) {
+  if (strcmp(object->type.ptr, "portal") == 0) {
     char filename[256];
-    snprintf(filename, sizeof(filename), "assets/%s.tmj", other->name.ptr);
-    portalPosition.x =  pntr_tiled_object_get_int(other, "pos_x", 0);
-    portalPosition.y = pntr_tiled_object_get_int(other, "pos_y", 0);
-    // printf("transporting: %s %dx%d\n", other->name.ptr, portalPosition.x, portalPosition.y);
+    snprintf(filename, sizeof(filename), "assets/%s.tmj", object->name.ptr);
+    portalPosition.x =  pntr_tiled_object_get_int(object, "pos_x", 0);
+    portalPosition.y = pntr_tiled_object_get_int(object, "pos_y", 0);
+    // printf("transporting: %s %dx%d\n", object->name.ptr, portalPosition.x, portalPosition.y);
     adventure_map_load(filename, &portalPosition, ADVENTURE_DIRECTION_NONE);
     return;
   }
 
-  // these might be seeprate later
-  if (strcmp(other->type.ptr, "sign") == 0 || strcmp(other->type.ptr, "musing") == 0) {
-    signText = pntr_tiled_object_get_string(other, "text");
+  // these might be seperate later
+  if (strcmp(object->type.ptr, "sign") == 0 || strcmp(object->type.ptr, "musing") == 0) {
+    signText = pntr_tiled_object_get_string(object, "text");
+  }
+
+  if (strcmp(object->type.ptr, "trap") == 0) {
+    
   }
 }
 
