@@ -28,6 +28,8 @@ static pntr_sound* soundHurt;
 // they have 2 frames, each at 200ms
 static int animWheel = 0;
 
+static int gemCount = 0;
+
 // this is used to make player jump back
 static AdventureDirection playerDirection = ADVENTURE_DIRECTION_NONE;
 
@@ -106,6 +108,7 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
     // You could use properties or name here to determine what the loot does, I am just hiding it
     pntr_play_sound(soundCoin, false);
     object->visible = false;
+    gemCount++;
   }
   
 
@@ -114,7 +117,10 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
   if (object->gid == 157 || object->gid == 160 || object->gid == 163 || object->gid == 166){
     printf("trap! %s - %d\n", object->name.ptr, object->gid);
     pntr_play_sound(soundHurt, false);
+    gemCount--;
   }
+  
+  // turn static sprite into anim-sprite
   switch(object->gid) {
     case 157: object->gid = 158; break;
     case 160: object->gid = 161; break;
@@ -154,12 +160,17 @@ bool Update(pntr_app* app, pntr_image* screen) {
   if (signText != NULL) {
     pntr_draw_tiled(screen, dialog, 0, 0, PNTR_WHITE);
     pntr_draw_text(screen, font, signText, 20, 180, PNTR_RAYWHITE);
+
     if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
       signText = NULL;
     }
   } else {
     adventure_map_update(app, screen);
   }
+
+  char gemText[10];
+  sprintf(gemText, "GEMS: %d", gemCount);
+  pntr_draw_text(screen, font, gemText, 10, 10, PNTR_RAYWHITE);
   
 
   return true;

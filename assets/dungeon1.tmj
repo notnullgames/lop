@@ -98,8 +98,14 @@
                  "height":16,
                  "id":3,
                  "name":"skeleton",
+                 "properties":[
+                        {
+                         "name":"text",
+                         "type":"string",
+                         "value":"Feel free to take any gems\nI'm not going to use them.\nOh! did you think I was bad?\nWell, I'm not."
+                        }],
                  "rotation":0,
-                 "type":"enemy",
+                 "type":"musing",
                  "visible":true,
                  "width":16,
                  "x":64,
