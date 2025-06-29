@@ -198,7 +198,7 @@ void adventure_map_load(const char* filename, pntr_vector* position, AdventureDi
     cute_tiled_frame_t* playerFrame = pntr_tiled_animation_frames(currentMap->map, currentMap->player->gid, &frame_count);
     if (playerFrame != NULL) {
       // printf("player frames: %dms * %d frames\n", playerFrame->duration, frame_count);
-      walkSpeed = playerFrame->duration / 250.0f;
+      walkSpeed = playerFrame->duration/frame_count;
     }
   }
 
@@ -249,9 +249,6 @@ bool adventure_map_check_collision(float x, float y, pntr_rectangle hitbox) {
     return false;
 }
 
-
-
-
 // check for objects collision on "objects" layer
 cute_tiled_object_t* adventure_map_check_object_collision(float x, float y, pntr_rectangle hitbox, const char* originatingName) {
   if (currentMap->objects == NULL) {
@@ -286,20 +283,20 @@ cute_tiled_object_t* adventure_map_check_object_collision(float x, float y, pntr
 
 
 // try to move in a direction, obey collisions, trigger object-touch events
-void adventure_game_try_to_move(AdventureDirection direction) {
+void adventure_game_try_to_move(AdventureDirection direction, pntr_app* app) {
   if (currentMap->player != NULL && direction != ADVENTURE_DIRECTION_NONE) {
     float x = currentMap->player->x;
     float y = currentMap->player->y;
     float newx = x;
     float newy = y;
     if (direction == ADVENTURE_DIRECTION_NORTH) {
-      newy -= walkSpeed;
+      newy -= walkSpeed * pntr_app_delta_time(app);
     } else if (direction == ADVENTURE_DIRECTION_SOUTH) {
-      newy += walkSpeed;
+      newy += walkSpeed * pntr_app_delta_time(app);
     } else if (direction == ADVENTURE_DIRECTION_EAST) {
-      newx += walkSpeed;
+      newx += walkSpeed * pntr_app_delta_time(app);
     } else if (direction == ADVENTURE_DIRECTION_WEST) {
-      newx -= walkSpeed;
+      newx -= walkSpeed * pntr_app_delta_time(app);
     }
 
     currentMap->walking = false;
@@ -339,16 +336,16 @@ void adventure_map_update(pntr_app* app, pntr_image* screen) {
     bool keyDown = pntr_app_key_down(app, PNTR_APP_KEY_DOWN);
 
     if (keyRight) {
-      adventure_game_try_to_move(ADVENTURE_DIRECTION_EAST);
+      adventure_game_try_to_move(ADVENTURE_DIRECTION_EAST, app);
     }
     if (keyLeft) {
-      adventure_game_try_to_move(ADVENTURE_DIRECTION_WEST);
+      adventure_game_try_to_move(ADVENTURE_DIRECTION_WEST, app);
     }
     if (keyDown) {
-      adventure_game_try_to_move(ADVENTURE_DIRECTION_SOUTH);
+      adventure_game_try_to_move(ADVENTURE_DIRECTION_SOUTH, app);
     }
     if (keyUp) {
-      adventure_game_try_to_move(ADVENTURE_DIRECTION_NORTH);
+      adventure_game_try_to_move(ADVENTURE_DIRECTION_NORTH, app);
     }
 
     if (!keyLeft && !keyRight && !keyUp && !keyDown) {
