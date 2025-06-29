@@ -5,12 +5,17 @@ I create a game-map style `adventure_map.h`, and a little user-code to define wh
 ![screenshot](screenshot.png)
 
 ```sh
-# native
+# build native
 cmake -B build
 cmake --build build
 
-# web
+# build web
 emcmake cmake -B wbuild
 cmake --build wbuild
+
+# web-server
 npx -y live-server docs
+
+# auto-reload build (in another terminal)
+watch 'cmake --build wbuild
 ```

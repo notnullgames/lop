@@ -180,18 +180,6 @@
                  "y":16
                 }, 
                 {
-                 "gid":160,
-                 "height":16,
-                 "id":23,
-                 "name":"fireholes",
-                 "rotation":0,
-                 "type":"trap",
-                 "visible":true,
-                 "width":16,
-                 "x":16,
-                 "y":128
-                }, 
-                {
                  "gid":124,
                  "height":16,
                  "id":30,
@@ -230,19 +218,6 @@
                 {
                  "gid":157,
                  "height":16,
-                 "id":34,
-                 "name":"fire",
-                 "rotation":0,
-                 "type":"trap",
-                 "visible":true,
-                 "width":16,
-                 "x":80,
-                 "y":128
-                },
-            
-                {
-                 "gid":157,
-                 "height":16,
                  "id":35,
                  "name":"fire",
                  "rotation":0,
@@ -255,18 +230,6 @@
                 {
                  "gid":157,
                  "height":16,
-                 "id":36,
-                 "name":"fire",
-                 "rotation":0,
-                 "type":"trap",
-                 "visible":true,
-                 "width":16,
-                 "x":144,
-                 "y":112
-                }, 
-                {
-                 "gid":157,
-                 "height":16,
                  "id":37,
                  "name":"fire",
                  "rotation":0,
@@ -275,7 +238,8 @@
                  "width":16,
                  "x":112,
                  "y":96
-                }, 
+                },
+            
                 {
                  "gid":157,
                  "height":16,
@@ -287,6 +251,30 @@
                  "width":16,
                  "x":112,
                  "y":32
+                }, 
+                {
+                 "gid":160,
+                 "height":16,
+                 "id":39,
+                 "name":"fire2",
+                 "rotation":0,
+                 "type":"trap",
+                 "visible":true,
+                 "width":16,
+                 "x":16,
+                 "y":128
+                }, 
+                {
+                 "gid":160,
+                 "height":16,
+                 "id":40,
+                 "name":"fire2",
+                 "rotation":0,
+                 "type":"trap",
+                 "visible":true,
+                 "width":16,
+                 "x":144,
+                 "y":144
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -294,8 +282,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":5,
- "nextobjectid":39,
+ "nextlayerid":6,
+ "nextobjectid":41,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

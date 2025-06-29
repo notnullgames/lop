@@ -16,20 +16,25 @@ static pntr_font* font;
 // 20x15 map for making dialog background
 static cute_tiled_map_t* dialog;
 
+
+static pntr_sound* soundHurt;
+
+
+// I use this to simplify interactive animations for non-characters
+// they have 2 frames, each at 200ms
+static int animWheel = 0;
+
+// this is used to make player jump back
+static AdventureDirection playerDirection = ADVENTURE_DIRECTION_NONE;
+
 // implement these game-specific functions, as sort of callbacks
-
-/*
-
-Character animations work like this:
-
-[S, A, B]
-still, A/B (walking)
-
-*/
 
 // called when object (player, enemy, thing) needs to be drawn
 void adventure_map_object_draw(cute_tiled_map_t* map, cute_tiled_layer_t* objects, cute_tiled_object_t* object, AdventureDirection direction, bool walking, bool collided, int camera_x, int camera_y) {
+  // handle player direction & animation
+  // TODO: I could put this in a general function for players & enemies
   if (strcmp(object->name.ptr, "player") == 0) {
+    playerDirection = direction;
     if (direction == ADVENTURE_DIRECTION_SOUTH) {
       if (walking) {
         object->gid = 2;
@@ -59,6 +64,17 @@ void adventure_map_object_draw(cute_tiled_map_t* map, cute_tiled_layer_t* object
     }
   }
 
+  // stop interactive animations in ~2 animaton-frames
+  if (animWheel++ > 120) {
+    switch(object->gid) {
+      // traps
+      case 158: object->gid = 157; break;
+      case 161: object->gid = 160; break;
+      case 164: object->gid = 163; break;
+      case 167: object->gid = 166; break;
+    }
+  }
+
   pntr_draw_tiled_tile(myApp->screen, map, object->gid, object->x - camera_x, object->y - camera_y-16, PNTR_WHITE);
 }
 
@@ -79,9 +95,25 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
     signText = pntr_tiled_object_get_string(object, "text");
   }
 
-  if (strcmp(object->type.ptr, "trap") == 0) {
-    
+  // TRAPS
+  // look at gid to determine if it's been sprung
+  if (object->gid == 157 || object->gid == 160 || object->gid == 163 || object->gid == 166){
+    printf("trap! %s - %d\n", object->name.ptr, object->gid);
+
+    // for some reason on web I have to reload it
+    // soundHurt = pntr_load_sound("assets/sounds/hurt.ogg");
+    pntr_play_sound(soundHurt, false);
   }
+  switch(object->gid) {
+    case 157: object->gid = 158; break;
+    case 160: object->gid = 161; break;
+    case 163: object->gid = 164; break;
+    case 166: object->gid = 167; break;
+  }
+
+
+  // all touches reset anim-wheeal
+  animWheel = 0;
 }
 
 bool Init(pntr_app* app) {
@@ -89,6 +121,9 @@ bool Init(pntr_app* app) {
   dialog =  pntr_load_tiled("assets/dialog.tmj");
   font = pntr_load_font_default();
   adventure_map_load("assets/welcome_island.tmj", NULL, ADVENTURE_DIRECTION_NONE);
+
+  soundHurt = pntr_load_sound("assets/sounds/hurt.ogg");
+
   return true;
 }
 

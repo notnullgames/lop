@@ -6198,6 +6198,10 @@ var wasmImports = {
   /** @export */
   pntr_app_platform_set_size,
   /** @export */
+  pntr_app_web_load_sound_from_memory,
+  /** @export */
+  pntr_app_web_play_sound,
+  /** @export */
   sargs_js_parse_url
 };
 var wasmExports = await createWasm();
