@@ -99,8 +99,10 @@ bool Update(pntr_app* app, pntr_image* screen) {
     if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
       signText = NULL;
     }
+  } else {
+    adventure_map_update(app, screen);
   }
-  adventure_map_update(app, screen);
+  
 
   return true;
 }
