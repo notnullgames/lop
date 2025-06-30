@@ -29,6 +29,7 @@ static pntr_sound* soundHurt;
 static int animWheel = 0;
 
 static int gemCount = 0;
+static bool title = true;
 
 // this is used to make player jump back
 static AdventureDirection playerDirection = ADVENTURE_DIRECTION_NONE;
@@ -157,6 +158,29 @@ void Event(pntr_app* app, pntr_app_event* event) {
 }
 
 bool Update(pntr_app* app, pntr_image* screen) {
+  // pntr_app_key_pressed would be better here, but it was not working on web
+  
+  if (title) {
+    pntr_clear_background(screen, PNTR_BLUE);
+    pntr_draw_text(screen, font, "THE LEGEND", 120, 120, PNTR_RAYWHITE);
+    pntr_draw_text(screen, font, "OF PNTR", 130, 130, PNTR_RAYWHITE);
+    if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+      title = false;
+    }
+    return true;
+  }
+
+  // very simple death-system
+  if (gemCount < 0) {
+    pntr_clear_background(screen, PNTR_RED);
+    pntr_draw_text(screen, font, "YOU DIED!", 120, 120, PNTR_BLACK);
+    if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+      gemCount = 0;
+      adventure_map_load("assets/welcome_island.tmj", NULL, ADVENTURE_DIRECTION_NONE);
+    }
+    return true;
+  }
+
   if (signText != NULL) {
     pntr_draw_tiled(screen, dialog, 0, 0, PNTR_WHITE);
     pntr_draw_text(screen, font, signText, 20, 180, PNTR_RAYWHITE);
