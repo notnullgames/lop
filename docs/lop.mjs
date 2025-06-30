@@ -6202,6 +6202,8 @@ var wasmImports = {
   /** @export */
   pntr_app_web_play_sound,
   /** @export */
+  pntr_app_web_set_volume,
+  /** @export */
   sargs_js_parse_url
 };
 var wasmExports = await createWasm();

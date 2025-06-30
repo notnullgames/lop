@@ -150,6 +150,10 @@ bool Init(pntr_app* app) {
   pntr_app_sfx_load_params(&sfx, "assets/rfx/hurt.rfx");
   soundHurt =  pntr_app_sfx_sound(app, &sfx);
 
+  // it was too loud
+  // this can also be done in settings when you save the sound
+  pntr_set_volume(soundCoin, 0.25);
+
   return true;
 }
 
@@ -159,7 +163,7 @@ void Event(pntr_app* app, pntr_app_event* event) {
 
 bool Update(pntr_app* app, pntr_image* screen) {
   // pntr_app_key_pressed would be better here, but it was not working on web
-  
+
   if (title) {
     pntr_clear_background(screen, PNTR_BLUE);
     pntr_draw_text(screen, font, "THE LEGEND", 120, 120, PNTR_RAYWHITE);
