@@ -99,9 +99,29 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
     return;
   }
 
-  // these might be seperate later
-  if (strcmp(object->type.ptr, "sign") == 0 || strcmp(object->type.ptr, "musing") == 0) {
-    signText = pntr_tiled_object_get_string(object, "text");
+  // Here I could use pntr_tiled_object_get_* but it's more efficient to do it in 1 loop
+  bool moveTowards = false;
+  bool moveAway = false;
+  signText = NULL;
+  for (int i = 0; i < object->property_count; i++) {
+    cute_tiled_property_t* prop = &object->properties[i];
+    if (prop->name.ptr != NULL) {
+      if (prop->type == CUTE_TILED_PROPERTY_STRING && strcmp(prop->name.ptr, "text") == 0) {
+        signText = prop->data.string.ptr;
+      }
+      if (prop->type == CUTE_TILED_PROPERTY_BOOL) {
+        if (strcmp(prop->name.ptr, "move_towards") == 0){
+          moveTowards = prop->data.boolean;
+        } else if (strcmp(prop->name.ptr, "move_away") == 0) {
+          moveAway = prop->data.boolean;
+        }
+      }
+    }
+  }
+
+  // TODO: move towards/away from player. I think I will need to rework collisions and movement
+
+  if (strcmp(object->type.ptr, "sign") == 0) {    
     pntr_play_sound(soundActivate, false);
   }
 
@@ -116,7 +136,7 @@ void adventure_map_object_touch(cute_tiled_map_t* map, cute_tiled_layer_t* objec
   // TRAPS
   // look at gid to determine if it's been sprung
   if (object->gid == 157 || object->gid == 160 || object->gid == 163 || object->gid == 166){
-    printf("trap! %s - %d\n", object->name.ptr, object->gid);
+    // printf("trap! %s - %d\n", object->name.ptr, object->gid);
     pntr_play_sound(soundHurt, false);
     gemCount--;
   }

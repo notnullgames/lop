@@ -317,6 +317,52 @@
                  "width":16,
                  "x":48,
                  "y":64
+                }, 
+                {
+                 "gid":86,
+                 "height":16,
+                 "id":47,
+                 "name":"friendly spider",
+                 "properties":[
+                        {
+                         "name":"move_towards",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"text",
+                         "type":"string",
+                         "value":"*friendly scuttering*\n\nHe seems happy to see me."
+                        }],
+                 "rotation":0,
+                 "type":"npc",
+                 "visible":true,
+                 "width":16,
+                 "x":16,
+                 "y":32
+                }, 
+                {
+                 "gid":74,
+                 "height":16,
+                 "id":48,
+                 "name":"friendly bat",
+                 "properties":[
+                        {
+                         "name":"move_towards",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"text",
+                         "type":"string",
+                         "value":"Aww!\n\nBats are so cute."
+                        }],
+                 "rotation":0,
+                 "type":"npc",
+                 "visible":true,
+                 "width":16,
+                 "x":16,
+                 "y":144
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -325,7 +371,7 @@
          "y":0
         }],
  "nextlayerid":6,
- "nextobjectid":44,
+ "nextobjectid":49,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

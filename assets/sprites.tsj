@@ -205,11 +205,11 @@
          "animation":[
                 {
                  "duration":200,
-                 "tileid":49
+                 "tileid":48
                 }, 
                 {
                  "duration":200,
-                 "tileid":50
+                 "tileid":49
                 }],
          "id":49
         }, 
@@ -305,6 +305,10 @@
                 }, 
                 {
                  "duration":200,
+                 "tileid":72
+                }, 
+                {
+                 "duration":200,
                  "tileid":74
                 }],
          "id":73
@@ -349,11 +353,11 @@
          "animation":[
                 {
                  "duration":200,
-                 "tileid":85
+                 "tileid":84
                 }, 
                 {
                  "duration":200,
-                 "tileid":86
+                 "tileid":85
                 }],
          "id":85
         }, 

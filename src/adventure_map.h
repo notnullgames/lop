@@ -66,7 +66,7 @@ const char*  pntr_tiled_object_get_string(cute_tiled_object_t* object, const cha
       }
     }
   }
-  printf("string prop not found: %s->%s\n", object->name.ptr, property_name);
+  // printf("string prop not found: %s->%s\n", object->name.ptr, property_name);
   return NULL;
 }
 
@@ -84,12 +84,12 @@ float pntr_tiled_object_get_float(cute_tiled_object_t* object, const char* prope
             }
         }
     }
-    printf("float prop not found: %s->%s\n", object->name.ptr, property_name);
+    // printf("float prop not found: %s->%s\n", object->name.ptr, property_name);
     return default_value;
 }
 
 // General helper to get a int-property from a tiled object
-float pntr_tiled_object_get_int(cute_tiled_object_t* object, const char* property_name, int default_value) {
+int pntr_tiled_object_get_int(cute_tiled_object_t* object, const char* property_name, int default_value) {
     if (object == NULL || property_name == NULL) {
         return default_value;
     }
@@ -102,29 +102,47 @@ float pntr_tiled_object_get_int(cute_tiled_object_t* object, const char* propert
             }
         }
     }
-    printf("int prop not found: %s->%s\n", object->name.ptr, property_name);
+    // printf("int prop not found: %s->%s\n", object->name.ptr, property_name);
+    return default_value;
+}
+
+// General helper to get a bool-property from a tiled object
+bool pntr_tiled_object_get_bool(cute_tiled_object_t* object, const char* property_name, bool default_value) {
+    if (object == NULL || property_name == NULL) {
+        return default_value;
+    }
+    for (int i = 0; i < object->property_count; i++) {
+        cute_tiled_property_t* prop = &object->properties[i];
+        
+        if (prop->name.ptr != NULL && strcmp(prop->name.ptr, property_name) == 0) {
+            if (prop->type == CUTE_TILED_PROPERTY_BOOL) {
+                return prop->data.boolean;
+            }
+        }
+    }
+    // printf("bool prop not found: %s->%s\n", object->name.ptr, property_name);
     return default_value;
 }
 
 // Get animations frames info from a gid
 cute_tiled_frame_t* pntr_tiled_animation_frames(cute_tiled_map_t* map, int gid, int* frame_count) {
-    if (gid <= 0 || !map || !frame_count) {
-        *frame_count = 0;
-        return NULL;
-    }
-    
-    // Get the pntr_tiled internal tile data
-    pntr_tiled_tile* tiles = (pntr_tiled_tile*)map->tiledversion.ptr;
-    pntr_tiled_tile* tile = tiles + gid - 1;
-    
-    // Check if this tile has a descriptor with animation data
-    if (tile->descriptor && tile->descriptor->frame_count > 0) {
-        *frame_count = tile->descriptor->frame_count;
-        return tile->descriptor->animation; // This is the cute_tiled_frame_t array
-    }
-    
+  if (gid <= 0 || !map || !frame_count) {
     *frame_count = 0;
     return NULL;
+  }
+  
+  // Get the pntr_tiled internal tile data
+  pntr_tiled_tile* tiles = (pntr_tiled_tile*)map->tiledversion.ptr;
+  pntr_tiled_tile* tile = tiles + gid - 1;
+  
+  // Check if this tile has a descriptor with animation data
+  if (tile->descriptor && tile->descriptor->frame_count > 0) {
+    *frame_count = tile->descriptor->frame_count;
+    return tile->descriptor->animation; // This is the cute_tiled_frame_t array
+  }
+  
+  *frame_count = 0;
+  return NULL;
 }
 
 // General helper to get a pntr_color from a tiled color
