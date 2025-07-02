@@ -39,6 +39,7 @@
 #define PNTR_TILED_H_
 
 // cute_tiled
+#define CUTE_TILED_NO_EXTERNAL_TILESET_WARNING
 #ifndef PNTR_TILED_CUTE_TILED_H
 #define PNTR_TILED_CUTE_TILED_H "cute_tiled.h"
 #endif
@@ -76,6 +77,7 @@ PNTR_TILED_API void pntr_draw_tiled(pntr_image* dst, cute_tiled_map_t* map, int 
 PNTR_TILED_API void pntr_draw_tiled_tile(pntr_image* dst, cute_tiled_map_t* map, int gid, int posX, int posY, pntr_color tint);
 PNTR_TILED_API void pntr_draw_tiled_layer_imagelayer(pntr_image* dst, cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, pntr_color tint);
 PNTR_TILED_API void pntr_draw_tiled_layer_tilelayer(pntr_image* dst, cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, pntr_color tint);
+PNTR_TILED_API void pntr_draw_tiled_layer_objectlayer(pntr_image* dst, cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, pntr_color tint);
 
 /**
  * Retrieves an image representing the desired tile from the given global tile ID.
@@ -146,16 +148,23 @@ PNTR_TILED_API pntr_vector pntr_layer_tile_from_position(cute_tiled_map_t* map, 
 PNTR_TILED_API cute_tiled_layer_t* pntr_tiled_layer_from_index(cute_tiled_map_t* map, int i);
 PNTR_TILED_API int pntr_tiled_layer_count(cute_tiled_map_t* map);
 
+/**
+ * Return the pntr_color for a tiled-color (like what is used in map background property)
+ * 
+ * @return the pntr_color
+ */
+PNTR_TILED_API pntr_color pntr_tiled_color(uint32_t color);
+
+/**
+ * Find an object by name on an object-layer
+ * 
+ * @return the cute_tiled_object
+ */ 
+PNTR_TILED_API cute_tiled_object_t* pntr_tiled_get_object(cute_tiled_layer_t* objects_layer, const char* name);
+
 #ifdef PNTR_ASSETSYS_API
 PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled_from_assetsys(assetsys_t* sys, const char* fileName);
 #endif  // PNTR_ASSETSYS_API
-
-#ifdef PNTR_TILED_EXTERNAL_TILESETS
-#ifndef CUTE_TILED_NO_EXTERNAL_TILESET_WARNING
-#define CUTE_TILED_NO_EXTERNAL_TILESET_WARNING
-#endif
-#endif // PNTR_TILED_EXTERNAL_TILESETS
-
 
 #ifdef __cplusplus
 }
@@ -423,9 +432,6 @@ PNTR_TILED_API pntr_image* pntr_tiled_tile_image(cute_tiled_map_t* map, int gid)
     return &tile->image;
 }
 
-// I redefine it to use external, later
-#ifndef PNTR_TILED_EXTERNAL_TILESETS
-
 PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled(const char* fileName) {
     unsigned int bytesRead;
     unsigned char* data = pntr_load_file(fileName, &bytesRead);
@@ -446,7 +452,6 @@ PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled(const char* fileName) {
 
     return output;
 }
-#endif // PNTR_TILED_EXTERNAL_TILESETS
 
 /**
  * Replaces the "image" with pntr_image.
@@ -490,15 +495,42 @@ static void _pntr_load_tiled_layer_images(cute_tiled_layer_t* layer, const char*
     }
 }
 
+// this grabs external tilesets and injects them as if they are internal
+static void _pntr_tiled_load_external_tilesets(cute_tiled_tileset_t* tileset, const char* baseDir) {
+    if (tileset->source.ptr != NULL) {
+        char fullPath[PNTR_PATH_MAX];
+        fullPath[0] = '\0';
+        PNTR_STRCAT(fullPath, baseDir);
+        PNTR_STRCAT(fullPath, tileset->source.ptr);
+
+        int originalFirstgid = tileset->firstgid;
+        cute_tiled_tileset_t* originalNext = tileset->next;
+        
+        unsigned int bytesRead;
+        unsigned char* data = pntr_load_file(fullPath, &bytesRead);
+        if (data != NULL) {
+            cute_tiled_tileset_t* tt = cute_tiled_load_external_tileset_from_memory(data, bytesRead, NULL);
+            if (tt != NULL) {
+                // TODO: is this a memleak? I think it is. How do I do it better?
+                pntr_memory_copy((void*)tileset, (void*)tt, sizeof(cute_tiled_tileset_t));
+                tileset->firstgid = originalFirstgid;
+                tileset->next = originalNext;
+            }
+            pntr_unload_file(data);
+        }
+    }
+}
+
 PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled_from_memory(const unsigned char *fileData, unsigned int dataSize, const char* baseDir) {
     cute_tiled_map_t* map = cute_tiled_load_map_from_memory(fileData, (int)dataSize, 0);
     if (map == NULL) {
         return NULL;
     }
 
-    // Load all the tileset images.
+    // Load all the tileset externaal tilesets & any tileset images.
     cute_tiled_tileset_t* tileset = map->tilesets;
     while (tileset) {
+        _pntr_tiled_load_external_tilesets(tileset, baseDir);
         _pntr_load_tiled_string_texture(&tileset->image, baseDir);
         if (tileset->transparentcolor != 0) {
             pntr_image_color_replace((pntr_image*)tileset->image.ptr, _pntr_get_tiled_color(tileset->transparentcolor), PNTR_BLANK);
@@ -518,6 +550,7 @@ PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled_from_memory(const unsigned char
 
     return map;
 }
+
 
 static void _pntr_unload_tiled_layer_images(cute_tiled_layer_t* layer) {
     if (layer == NULL) {
@@ -590,7 +623,7 @@ PNTR_TILED_API void pntr_draw_tiled_tile(pntr_image* dst, cute_tiled_map_t* map,
 
 PNTR_TILED_API void pntr_draw_tiled_layer_tilelayer(pntr_image* dst, cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, pntr_color tint) {
     int left, top;
-	for (int y = 0; y < layer->height; y++) {
+    for (int y = 0; y < layer->height; y++) {
         // Only act on tiles within y bounds.
         top = posY + y * map->tileheight;
         if (top > dst->height) {
@@ -600,7 +633,7 @@ PNTR_TILED_API void pntr_draw_tiled_layer_tilelayer(pntr_image* dst, cute_tiled_
             continue;
         }
 
-		for (int x = 0; x < layer->width; x++) {
+        for (int x = 0; x < layer->width; x++) {
             // Only act on tiles within x bounds.
             left = posX + x * map->tilewidth;
             if (left > dst->width) {
@@ -636,13 +669,24 @@ PNTR_TILED_API void pntr_draw_tiled_layer_imagelayer(pntr_image* dst, cute_tiled
     pntr_draw_image_tint(dst, image, posX, posY, tint);
 }
 
+PNTR_TILED_API void pntr_draw_tiled_layer_objectlayer(pntr_image* dst, cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, pntr_color tint){
+    cute_tiled_object_t* object = layer->objects;
+    while (object != NULL) {
+        if (object->visible) {
+            pntr_draw_tiled_tile(dst, map, object->gid, object->x + posX, object->y + posY -  map->tileheight, tint);
+        }
+        object = object->next;
+    }
+}
+
+
 PNTR_TILED_API void pntr_draw_tiled_layer(pntr_image* dst, cute_tiled_map_t* map, cute_tiled_layer_t* layer, int posX, int posY, pntr_color tint) {
     if (dst == NULL || map == NULL || layer == NULL || tint.rgba.a == 0) {
         return;
     }
 
-	while (layer) {
-		if (layer->type.ptr != NULL && layer->opacity > 0) {
+    while (layer) {
+        if (layer->type.ptr != NULL && layer->opacity > 0 && layer->visible) {
             // Apply opacity to the layer
             pntr_color tintWithOpacity = tint;
             if (layer->opacity != 1) {
@@ -658,17 +702,16 @@ PNTR_TILED_API void pntr_draw_tiled_layer(pntr_image* dst, cute_tiled_map_t* map
                     pntr_draw_tiled_layer(dst, map, layer->layers, layer->offsetx + posX, layer->offsety + posY, tintWithOpacity);
                 break;
                 case 'o': // "objectgroup"
-                    // TODO: Draw the objects?
-                    //DrawMapLayerObjects(layer->objects, layer->offsetx + posX, layer->offsety + posY, tintWithOpacity);
+                    pntr_draw_tiled_layer_objectlayer(dst, map, layer, layer->offsetx + posX, layer->offsety + posY, tintWithOpacity);
                 break;
                 case 'i': // "imagelayer"
                     pntr_draw_tiled_layer_imagelayer(dst, map, layer, layer->offsetx + posX, layer->offsety + posY, tintWithOpacity);
                 break;
             }
-		}
+        }
 
-		layer = layer->next;
-	}
+        layer = layer->next;
+    }
 }
 
 PNTR_TILED_API pntr_image* pntr_gen_image_tiled(cute_tiled_map_t* map, pntr_color tint) {
@@ -809,357 +852,39 @@ PNTR_TILED_API pntr_vector pntr_layer_tile_from_position(cute_tiled_map_t* map, 
     };
 }
 
+
+// General helper to get a pntr_color from a tiled color
+PNTR_TILED_API pntr_color pntr_tiled_color(uint32_t color) {
+    if (color > 0xFFFFFF) {
+        // Has alpha channel
+        return pntr_new_color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, (color >> 24) & 0xFF);
+    } else {
+        // No alpha, default to fully opaque
+        return pntr_new_color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, 0xFF);
+    }
+}
+
+// Find an object by name on an object-layer
+PNTR_TILED_API cute_tiled_object_t* pntr_tiled_get_object(cute_tiled_layer_t* objects_layer, const char* name) {
+  if (objects_layer == NULL || objects_layer->objects == NULL) {
+    return NULL;
+  }
+  cute_tiled_object_t* current = objects_layer->objects;
+  while (current != NULL) {
+    if (current->name.ptr != NULL && strcmp(current->name.ptr, name) == 0) {
+      return current;
+    }
+    current = current->next;
+  }
+  return NULL;
+}
+
 /**
  * Integrations
  */
 #ifdef PNTR_ASSETSYS_API
     #include "pntr_tiled_assetsys.h"
 #endif
-
-#ifdef PNTR_TILED_EXTERNAL_TILESETS
-
-// Helper function to find substring in string
-static char* _pntr_tiled_strstr(const char* haystack, const char* needle) {
-    if (!haystack || !needle) return NULL;
-    
-    size_t needle_len = PNTR_STRLEN(needle);
-    if (needle_len == 0) return (char*)haystack;
-    
-    for (const char* p = haystack; *p; p++) {
-        if (*p == *needle) {
-            size_t i;
-            for (i = 1; i < needle_len && p[i] == needle[i]; i++);
-            if (i == needle_len) return (char*)p;
-        }
-    }
-    return NULL;
-}
-
-// Helper function to find character in string
-static char* _pntr_tiled_strchr(const char* str, int c) {
-    if (!str) return NULL;
-    while (*str) {
-        if (*str == c) return (char*)str;
-        str++;
-    }
-    return (*str == c) ? (char*)str : NULL;
-}
-
-// Helper function to replace string in buffer
-static char* _pntr_tiled_str_replace(const char* source, const char* find, const char* replace) {
-    const char* pos = _pntr_tiled_strstr(source, find);
-    if (!pos) {
-        size_t len = PNTR_STRLEN(source);
-        char* result = (char*)pntr_load_memory(len + 1);
-        if (result) {
-            pntr_memory_copy(result, (void*)source, len);
-            result[len] = '\0';
-        }
-        return result;
-    }
-    
-    size_t find_len = PNTR_STRLEN(find);
-    size_t replace_len = PNTR_STRLEN(replace);
-    size_t source_len = PNTR_STRLEN(source);
-    size_t new_len = source_len - find_len + replace_len;
-    
-    char* result = (char*)pntr_load_memory(new_len + 10000); // Extra space for embedding
-    if (!result) return NULL;
-    
-    size_t prefix_len = pos - source;
-    pntr_memory_copy(result, (void*)source, prefix_len);
-    pntr_memory_copy(result + prefix_len, (void*)replace, replace_len);
-    pntr_memory_copy(result + prefix_len + replace_len, (void*)(pos + find_len), source_len - prefix_len - find_len);
-    result[new_len] = '\0';
-    
-    return result;
-}
-
-// Helper function to extract JSON value
-static char* _pntr_tiled_extract_json_value(const char* json, const char* key) {
-    char search_pattern[256];
-    search_pattern[0] = '\0';
-    PNTR_STRCAT(search_pattern, "\"");
-    PNTR_STRCAT(search_pattern, key);
-    PNTR_STRCAT(search_pattern, "\":");
-    
-    char* pos = _pntr_tiled_strstr(json, search_pattern);
-    if (!pos) return NULL;
-    
-    pos += PNTR_STRLEN(search_pattern);
-    
-    // Skip whitespace
-    while (*pos == ' ' || *pos == '\t' || *pos == '\n' || *pos == '\r') pos++;
-    
-    if (*pos == '"') {
-        // String value
-        pos++; // Skip opening quote
-        char* end = _pntr_tiled_strchr(pos, '"');
-        if (!end) return NULL;
-        
-        size_t len = end - pos;
-        char* result = (char*)pntr_load_memory(len + 1);
-        if (result) {
-            pntr_memory_copy(result, pos, len);
-            result[len] = '\0';
-        }
-        return result;
-    } else {
-        // Number value
-        char* end = pos;
-        while (*end && *end != ',' && *end != '}' && *end != ']' && *end != '\n' && *end != '\r') end++;
-        
-        size_t len = end - pos;
-        char* result = (char*)pntr_load_memory(len + 1);
-        if (result) {
-            pntr_memory_copy(result, pos, len);
-            result[len] = '\0';
-        }
-        return result;
-    }
-}
-
-// Main preprocessing function to embed external tilesets
-// Main preprocessing function to embed external tilesets
-static char* _pntr_tiled_preprocess_external_tilesets(const char* map_data, const char* base_dir) {
-    if (!map_data) return NULL;
-    
-    size_t map_len = PNTR_STRLEN(map_data);
-    char* processed_data = (char*)pntr_load_memory(map_len * 5); // More generous allocation
-    if (!processed_data) return NULL;
-    pntr_memory_copy(processed_data, (void*)map_data, map_len);
-    processed_data[map_len] = '\0';
-    
-    // Look for external tileset references
-    char* search_pos = processed_data;
-    while ((search_pos = _pntr_tiled_strstr(search_pos, "\"source\":")) != NULL) {
-        search_pos += 9;
-        
-        // Skip whitespace
-        while (*search_pos == ' ' || *search_pos == '\t' || *search_pos == '\n' || *search_pos == '\r') {
-            search_pos++;
-        }
-        
-        if (*search_pos != '"') continue;
-        search_pos++;
-        
-        char* end_quote = _pntr_tiled_strchr(search_pos, '"');
-        if (!end_quote) continue;
-        
-        // Extract the tileset filename
-        size_t filename_len = end_quote - search_pos;
-        char* tileset_filename = (char*)pntr_load_memory(filename_len + 1);
-        if (!tileset_filename) continue;
-        pntr_memory_copy(tileset_filename, search_pos, filename_len);
-        tileset_filename[filename_len] = '\0';
-        
-        // Build full path to tileset file
-        char tileset_path[PNTR_PATH_MAX];
-        tileset_path[0] = '\0';
-        if (base_dir && PNTR_STRLEN(base_dir) > 0) {
-            PNTR_STRCAT(tileset_path, base_dir);
-        }
-        PNTR_STRCAT(tileset_path, tileset_filename);
-        
-        // Load the external tileset
-        unsigned int tileset_bytes;
-        unsigned char* tileset_data = pntr_load_file(tileset_path, &tileset_bytes);
-        
-        if (tileset_data) {
-            // Convert tileset data to string
-            char* tileset_json = (char*)pntr_load_memory(tileset_bytes + 1);
-            if (tileset_json) {
-                pntr_memory_copy(tileset_json, tileset_data, tileset_bytes);
-                tileset_json[tileset_bytes] = '\0';
-                
-                // Extract key tileset properties
-                char* image = _pntr_tiled_extract_json_value(tileset_json, "image");
-                char* imagewidth = _pntr_tiled_extract_json_value(tileset_json, "imagewidth");
-                char* imageheight = _pntr_tiled_extract_json_value(tileset_json, "imageheight");
-                char* tilewidth = _pntr_tiled_extract_json_value(tileset_json, "tilewidth");
-                char* tileheight = _pntr_tiled_extract_json_value(tileset_json, "tileheight");
-                char* tilecount = _pntr_tiled_extract_json_value(tileset_json, "tilecount");
-                char* columns = _pntr_tiled_extract_json_value(tileset_json, "columns");
-                
-                // Extract the tiles array (contains animations and per-tile properties)
-                char* tiles_start = _pntr_tiled_strstr(tileset_json, "\"tiles\":");
-                char* tiles_content = NULL;
-                if (tiles_start) {
-                    tiles_start += 8; // Move past "tiles":
-                    // Skip whitespace
-                    while (*tiles_start == ' ' || *tiles_start == '\t' || *tiles_start == '\n' || *tiles_start == '\r') tiles_start++;
-                    
-                    if (*tiles_start == '[') {
-                        // Find the matching closing bracket
-                        int bracket_count = 0;
-                        char* tiles_end = tiles_start;
-                        do {
-                            if (*tiles_end == '[') bracket_count++;
-                            else if (*tiles_end == ']') bracket_count--;
-                            tiles_end++;
-                        } while (bracket_count > 0 && *tiles_end);
-                        
-                        if (bracket_count == 0) {
-                            size_t tiles_len = tiles_end - tiles_start;
-                            tiles_content = (char*)pntr_load_memory(tiles_len + 1);
-                            if (tiles_content) {
-                                pntr_memory_copy(tiles_content, tiles_start, tiles_len);
-                                tiles_content[tiles_len] = '\0';
-                            }
-                        }
-                    }
-                }
-                
-                // Calculate replacement size dynamically
-                size_t replacement_size = 1024; // Base size
-                if (image) replacement_size += PNTR_STRLEN(image) + 20;
-                if (imagewidth) replacement_size += PNTR_STRLEN(imagewidth) + 20;
-                if (imageheight) replacement_size += PNTR_STRLEN(imageheight) + 20;
-                if (tilewidth) replacement_size += PNTR_STRLEN(tilewidth) + 20;
-                if (tileheight) replacement_size += PNTR_STRLEN(tileheight) + 20;
-                if (tilecount) replacement_size += PNTR_STRLEN(tilecount) + 20;
-                if (columns) replacement_size += PNTR_STRLEN(columns) + 20;
-                if (tiles_content) replacement_size += PNTR_STRLEN(tiles_content) + 20;
-                
-                // Create replacement string with embedded properties
-                char* replacement = (char*)pntr_load_memory(replacement_size);
-                if (replacement) {
-                    replacement[0] = '\0';
-                    
-                    if (image) {
-                        PNTR_STRCAT(replacement, "\"image\":\"");
-                        PNTR_STRCAT(replacement, image);
-                        PNTR_STRCAT(replacement, "\",");
-                    }
-                    if (imagewidth) {
-                        PNTR_STRCAT(replacement, "\"imagewidth\":");
-                        PNTR_STRCAT(replacement, imagewidth);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    if (imageheight) {
-                        PNTR_STRCAT(replacement, "\"imageheight\":");
-                        PNTR_STRCAT(replacement, imageheight);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    if (tilewidth) {
-                        PNTR_STRCAT(replacement, "\"tilewidth\":");
-                        PNTR_STRCAT(replacement, tilewidth);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    if (tileheight) {
-                        PNTR_STRCAT(replacement, "\"tileheight\":");
-                        PNTR_STRCAT(replacement, tileheight);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    if (tilecount) {
-                        PNTR_STRCAT(replacement, "\"tilecount\":");
-                        PNTR_STRCAT(replacement, tilecount);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    if (columns) {
-                        PNTR_STRCAT(replacement, "\"columns\":");
-                        PNTR_STRCAT(replacement, columns);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    if (tiles_content) {
-                        PNTR_STRCAT(replacement, "\"tiles\":");
-                        PNTR_STRCAT(replacement, tiles_content);
-                        PNTR_STRCAT(replacement, ",");
-                    }
-                    
-                    // Remove trailing comma
-                    size_t rep_len = PNTR_STRLEN(replacement);
-                    if (rep_len > 0 && replacement[rep_len - 1] == ',') {
-                        replacement[rep_len - 1] = '\0';
-                    }
-                    
-                    // Create the source pattern to replace
-                    char* source_pattern = (char*)pntr_load_memory(filename_len + 20);
-                    if (source_pattern) {
-                        source_pattern[0] = '\0';
-                        PNTR_STRCAT(source_pattern, "\"source\":\"");
-                        PNTR_STRCAT(source_pattern, tileset_filename);
-                        PNTR_STRCAT(source_pattern, "\"");
-                        
-                        // Replace the source reference with embedded data
-                        char* new_processed_data = _pntr_tiled_str_replace(processed_data, source_pattern, replacement);
-                        if (new_processed_data) {
-                            pntr_unload_memory(processed_data);
-                            processed_data = new_processed_data;
-                        }
-                        
-                        pntr_unload_memory(source_pattern);
-                    }
-                    
-                    pntr_unload_memory(replacement);
-                }
-                
-                // Clean up extracted values
-                if (image) pntr_unload_memory(image);
-                if (imagewidth) pntr_unload_memory(imagewidth);
-                if (imageheight) pntr_unload_memory(imageheight);
-                if (tilewidth) pntr_unload_memory(tilewidth);
-                if (tileheight) pntr_unload_memory(tileheight);
-                if (tilecount) pntr_unload_memory(tilecount);
-                if (columns) pntr_unload_memory(columns);
-                if (tiles_content) pntr_unload_memory(tiles_content);
-                
-                pntr_unload_memory(tileset_json);
-            }
-            pntr_unload_memory(tileset_data);
-        }
-        
-        pntr_unload_memory(tileset_filename);
-        search_pos = end_quote + 1;
-    }
-    
-    return processed_data;
-}
-
-
-
-// Replace the existing pntr_load_tiled function with external tileset support
-PNTR_TILED_API cute_tiled_map_t* pntr_load_tiled(const char* fileName) {
-    unsigned int bytesRead;
-    unsigned char* data = pntr_load_file(fileName, &bytesRead);
-    if (data == NULL) {
-        return NULL;
-    }
-    
-    // Get base directory
-    char baseDir[PNTR_PATH_MAX];
-    size_t fileNameLength = PNTR_STRLEN(fileName);
-    pntr_memory_copy((void*)baseDir, (void*)fileName, fileNameLength);
-    baseDir[fileNameLength] = '\0';
-    _pntr_tiled_path_basedir(baseDir);
-    
-    // Convert to string for processing
-    char* map_json = (char*)pntr_load_memory(bytesRead + 1);
-    if (!map_json) {
-        pntr_unload_memory(data);
-        return NULL;
-    }
-    pntr_memory_copy(map_json, (void*)data, bytesRead);
-    map_json[bytesRead] = '\0';
-    pntr_unload_memory(data);
-    
-    // Preprocess to embed external tilesets
-    char* processed_json = _pntr_tiled_preprocess_external_tilesets(map_json, baseDir);
-    pntr_unload_memory(map_json);
-    
-    if (!processed_json) {
-        return NULL;
-    }
-    
-    // Load the processed map using existing function
-    cute_tiled_map_t* map = pntr_load_tiled_from_memory((unsigned char*)processed_json, PNTR_STRLEN(processed_json), baseDir);
-    pntr_unload_memory(processed_json);
-    
-    return map;
-}
-
-#endif // PNTR_TILED_EXTERNAL_TILESETS
-
 
 #ifdef __cplusplus
 }
