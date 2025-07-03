@@ -6,20 +6,31 @@ I create a game-map style `adventure_map.h`, and a little user-code to define wh
 
 I am using [this fork of pntr_tiled](https://github.com/RobLoach/pntr_tiled/pull/24) that has external tilesheets and better object-support.
 
-```sh
+```shell
 # build native
-cmake -B build
-cmake --build build
+$ cmake -B build
+$ cmake --build build
 
 # build web
-emcmake cmake -B wbuild
-cmake --build wbuild
+$ emcmake cmake -B wbuild
+$ cmake --build wbuild
 
 # web-server
-npx -y live-server docs
+$ npx -y live-server docs
 
 # auto-reload build (in another terminal)
-watch 'cmake --build wbuild
+$ watch 'cmake --build wbuild
+
+# for fast-build/debugging
+$ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+$ cmake --build build
+
+# debugging
+$ lldb build/lop
+(lldb) r
+
+# if there was a problem
+(lldb) bt
 ```
 
 ## collisions

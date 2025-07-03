@@ -53,8 +53,13 @@
                  "gid":120,
                  "height":16,
                  "id":1,
-                 "name":"welcome_island",
+                 "name":"main",
                  "properties":[
+                        {
+                         "name":"facing",
+                         "type":"string",
+                         "value":"E"
+                        }, 
                         {
                          "name":"pos_x",
                          "type":"int",
@@ -78,6 +83,16 @@
                  "id":3,
                  "name":"skeleton",
                  "properties":[
+                        {
+                         "name":"avoid",
+                         "type":"bool",
+                         "value":false
+                        }, 
+                        {
+                         "name":"follow",
+                         "type":"bool",
+                         "value":false
+                        }, 
                         {
                          "name":"text",
                          "type":"string",
@@ -240,6 +255,12 @@
                  "height":16,
                  "id":41,
                  "name":"roopees",
+                 "properties":[
+                        {
+                         "name":"roopees",
+                         "type":"int",
+                         "value":10
+                        }],
                  "rotation":0,
                  "type":"loot",
                  "visible":true,
@@ -252,6 +273,12 @@
                  "height":16,
                  "id":42,
                  "name":"roopees",
+                 "properties":[
+                        {
+                         "name":"roopees",
+                         "type":"int",
+                         "value":1
+                        }],
                  "rotation":0,
                  "type":"loot",
                  "visible":true,
@@ -278,14 +305,19 @@
                  "name":"friendly spider",
                  "properties":[
                         {
-                         "name":"follows",
+                         "name":"avoid",
                          "type":"bool",
-                         "value":true
+                         "value":false
+                        }, 
+                        {
+                         "name":"follow",
+                         "type":"bool",
+                         "value":false
                         }, 
                         {
                          "name":"text",
                          "type":"string",
-                         "value":"*friendly scuttering*\n\nHe seems happy to see me."
+                         "value":"*friendly scuttering*=\nHe seems happy to see me."
                         }],
                  "rotation":0,
                  "type":"npc",
@@ -301,14 +333,19 @@
                  "name":"friendly bat",
                  "properties":[
                         {
-                         "name":"follows",
+                         "name":"avoid",
                          "type":"bool",
-                         "value":true
+                         "value":false
+                        }, 
+                        {
+                         "name":"follow",
+                         "type":"bool",
+                         "value":false
                         }, 
                         {
                          "name":"text",
                          "type":"string",
-                         "value":"Aww!\n\nBats are so cute."
+                         "value":"Aww!\nBats are so cute."
                         }],
                  "rotation":0,
                  "type":"npc",

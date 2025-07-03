@@ -9,6 +9,15 @@ if(POLICY CMP0135)
   set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 endif()
 
+# set(CMAKE_BUILD_TYPE Debug)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Building in Debug mode.")
+    add_definitions(-DDEBUG_MODE)
+    set(CMAKE_C_FLAGS_DEBUG "-g -O0")
+endif()
+
+
 FetchContent_Declare(pntr URL https://github.com/RobLoach/pntr/archive/refs/heads/master.zip)
 FetchContent_MakeAvailable(pntr)
 
@@ -19,7 +28,6 @@ FetchContent_MakeAvailable(pntr_app)
 FILE(GLOB SRC_FILES src/*.c)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} pntr pntr_app)
-
 
 IF (EMSCRIPTEN)
   ADD_COMPILE_DEFINITIONS(PNTR_APP_WEB)
