@@ -1,6 +1,5 @@
-project(lop)
-
 cmake_minimum_required(VERSION 3.18)
+project(lop)
 
 include(FetchContent)
 
@@ -32,7 +31,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME} pntr pntr_app)
 IF (EMSCRIPTEN)
   ADD_COMPILE_DEFINITIONS(PNTR_APP_WEB)
   SET(CMAKE_EXECUTABLE_SUFFIX ".mjs")
-  TARGET_LINK_OPTIONS(${PROJECT_NAME} PRIVATE -sASSERTIONS=1 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --embed-file ${CMAKE_SOURCE_DIR}/assets@/assets)
+  TARGET_LINK_OPTIONS(${PROJECT_NAME} PRIVATE -sASSERTIONS=1 -sASYNCIFY --embed-file ${CMAKE_SOURCE_DIR}/assets@/assets)
   add_custom_command(
     TARGET ${PROJECT_NAME}
     POST_BUILD

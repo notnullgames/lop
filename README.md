@@ -11,6 +11,13 @@ I am using [this fork of pntr_tiled](https://github.com/RobLoach/pntr_tiled/pull
 $ cmake -B build
 $ cmake --build build
 
+$ ./build/lop
+```
+
+for web:
+
+
+```shell
 # build web
 $ emcmake cmake -B wbuild
 $ cmake --build wbuild
@@ -19,8 +26,12 @@ $ cmake --build wbuild
 $ npx -y live-server docs
 
 # auto-reload build (in another terminal)
-$ watch 'cmake --build wbuild
+$ watch 'cmake --build wbuild'
+```
 
+for debugging:
+
+```shell
 # for fast-build/debugging
 $ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 $ cmake --build build
@@ -28,8 +39,6 @@ $ cmake --build build
 # debugging
 $ lldb build/lop
 (lldb) r
-
-# if there was a problem
 (lldb) bt
 ```
 
@@ -38,4 +47,4 @@ $ lldb build/lop
 Add a couple object-layers to your map:
 
 - `objects` - put the player & anything they interact with here. Collision is per-tile-square.
-- `collisions` - put collisions-shapes that make up the "solid things" in your world here. The player will not be able to walk to these areas.
+- `collisions` - I also want non-interactive (static geometry) collisions, but there some issues: cute_tiled does not like shapes, etc
