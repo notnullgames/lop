@@ -1,4 +1,4 @@
-#include <dirent.h>
+// #include <dirent.h>
 
 // return least of 2 numbers
 #ifndef MIN
@@ -30,13 +30,15 @@
 #define RECTS_OVERLAP(ax, ay, aw, ah, bx, by, bw, bh) ((ax) < (bx) + (bw) && (ax) + (aw) > (bx) && (ay) < (by) + (bh) && (ay) + (ah) > (by))
 #endif
 
+// linked list
+// this allows you to use to use as a single-map or list of preloaded maps
 typedef struct adventure_map {
-    char* name;
     cute_tiled_map_t* map;
     cute_tiled_object_t* player;
     cute_tiled_layer_t* layer_objects;
     cute_tiled_layer_t* layer_collisions;
     struct adventure_map* next;
+    char* filename;
 } adventure_map_t;
 
 // called when anythign touches wall or other object
@@ -78,8 +80,8 @@ cute_tiled_object_t* adventure_check_object_collision(cute_tiled_layer_t* layer,
     return NULL;
 }
 
-// zelda-style input handler
-void adventure_handle_input(pntr_app* app, adventure_map_t* maps, pntr_vector* req, pntr_rectangle* hitbox, AdventureCollisionCallback callback) {
+// take a request for movement (after reading input) and fire callback on collision
+void adventure_try_to_move_player(pntr_app* app, adventure_map_t* maps, pntr_vector* req, pntr_rectangle* hitbox, AdventureCollisionCallback callback) {
     if (maps == NULL || app == NULL) {
         return;
     }
@@ -120,11 +122,27 @@ void adventure_handle_input(pntr_app* app, adventure_map_t* maps, pntr_vector* r
     }
 }
 
-adventure_map_t* adventure_load(char* filename) {
-    adventure_map_t* maps = NULL;
+// load a single map into linked-list
+// if it's already loaded, return that
+adventure_map_t* adventure_load(char* filename, adventure_map_t** maps) {
+    // search for same name
+    adventure_map_t* found = (*maps);
+    while(found != NULL) {
+        if (PNTR_STRCMP(found->filename, filename) == 0) {
+            printf("found '%s' (preloaded.)", filename);
+            break;
+        }
+        found = found->next;
+    }
+
+    if (found != NULL) {
+        return found;
+    }
+    printf("loading '%s' (not preloaded.)", filename);
 
     adventure_map_t* current = pntr_load_memory(sizeof(adventure_map_t));
     current->map = pntr_load_tiled(filename);
+    current->filename = filename;
 
     cute_tiled_layer_t* layer = current->map->layers;
     while(layer != NULL) {
@@ -145,8 +163,18 @@ adventure_map_t* adventure_load(char* filename) {
         layer = layer->next;
     }
 
-    LL_PUSH(maps, current);
-    return maps;
+    LL_PUSH(*maps, current);
+    return current;
+}
+
+// free the current head of the list
+void adventure_unload(adventure_map_t** map) {
+    if (map && *map) {
+        adventure_map_t* to_free = *map;
+        cute_tiled_free_map((*map)->map);
+        *map = (*map)->next;
+        free(to_free);
+    }
 }
 
 // set the current camera, based on screen/map size & lookAt position

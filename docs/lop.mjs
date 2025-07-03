@@ -3716,70 +3716,6 @@ async function createWasm() {
   }
   }
 
-  var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
-      assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
-      return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
-    };
-  
-  function ___syscall_getdents64(fd, dirp, count) {
-  try {
-  
-      var stream = SYSCALLS.getStreamFromFD(fd)
-      stream.getdents ||= FS.readdir(stream.path);
-  
-      var struct_size = 280;
-      var pos = 0;
-      var off = FS.llseek(stream, 0, 1);
-  
-      var startIdx = Math.floor(off / struct_size);
-      var endIdx = Math.min(stream.getdents.length, startIdx + Math.floor(count/struct_size))
-      for (var idx = startIdx; idx < endIdx; idx++) {
-        var id;
-        var type;
-        var name = stream.getdents[idx];
-        if (name === '.') {
-          id = stream.node.id;
-          type = 4; // DT_DIR
-        }
-        else if (name === '..') {
-          var lookup = FS.lookupPath(stream.path, { parent: true });
-          id = lookup.node.id;
-          type = 4; // DT_DIR
-        }
-        else {
-          var child;
-          try {
-            child = FS.lookupNode(stream.node, name);
-          } catch (e) {
-            // If the entry is not a directory, file, or symlink, nodefs
-            // lookupNode will raise EINVAL. Skip these and continue.
-            if (e?.errno === 28) {
-              continue;
-            }
-            throw e;
-          }
-          id = child.id;
-          type = FS.isChrdev(child.mode) ? 2 :  // DT_CHR, character device.
-                 FS.isDir(child.mode) ? 4 :     // DT_DIR, directory.
-                 FS.isLink(child.mode) ? 10 :   // DT_LNK, symbolic link.
-                 8;                             // DT_REG, regular file.
-        }
-        assert(id);
-        HEAP64[((dirp + pos)>>3)] = BigInt(id);
-        HEAP64[(((dirp + pos)+(8))>>3)] = BigInt((idx + 1) * struct_size);
-        HEAP16[(((dirp + pos)+(16))>>1)] = 280;
-        HEAP8[(dirp + pos)+(18)] = type;
-        stringToUTF8(name, dirp + pos + 19, 256);
-        pos += struct_size;
-      }
-      FS.llseek(stream, idx * struct_size, 0);
-      return pos;
-    } catch (e) {
-    if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
-    return -e.errno;
-  }
-  }
-
   
   function ___syscall_ioctl(fd, op, varargs) {
   SYSCALLS.varargs = varargs;
@@ -4373,6 +4309,10 @@ async function createWasm() {
       },
   };
   
+  var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
+      assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+      return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
+    };
   var fillGamepadEventData = (eventStruct, e) => {
       HEAPF64[((eventStruct)>>3)] = e.timestamp;
       for (var i = 0; i < e.axes.length; ++i) {
@@ -6072,7 +6012,6 @@ var dynCall_ii = makeInvalidEarlyAccess('dynCall_ii');
 var dynCall_iii = makeInvalidEarlyAccess('dynCall_iii');
 var dynCall_vii = makeInvalidEarlyAccess('dynCall_vii');
 var dynCall_viiii = makeInvalidEarlyAccess('dynCall_viiii');
-var dynCall_viii = makeInvalidEarlyAccess('dynCall_viii');
 var dynCall_jiji = makeInvalidEarlyAccess('dynCall_jiji');
 var dynCall_iidiiii = makeInvalidEarlyAccess('dynCall_iidiiii');
 var _asyncify_start_unwind = makeInvalidEarlyAccess('_asyncify_start_unwind');
@@ -6105,7 +6044,6 @@ function assignWasmExports(wasmExports) {
   dynCalls['iii'] = dynCall_iii = createExportWrapper('dynCall_iii', 3);
   dynCalls['vii'] = dynCall_vii = createExportWrapper('dynCall_vii', 3);
   dynCalls['viiii'] = dynCall_viiii = createExportWrapper('dynCall_viiii', 5);
-  dynCalls['viii'] = dynCall_viii = createExportWrapper('dynCall_viii', 4);
   dynCalls['jiji'] = dynCall_jiji = createExportWrapper('dynCall_jiji', 4);
   dynCalls['iidiiii'] = dynCall_iidiiii = createExportWrapper('dynCall_iidiiii', 7);
   _asyncify_start_unwind = createExportWrapper('asyncify_start_unwind', 1);
@@ -6118,8 +6056,6 @@ var wasmImports = {
   __assert_fail: ___assert_fail,
   /** @export */
   __syscall_fcntl64: ___syscall_fcntl64,
-  /** @export */
-  __syscall_getdents64: ___syscall_getdents64,
   /** @export */
   __syscall_ioctl: ___syscall_ioctl,
   /** @export */

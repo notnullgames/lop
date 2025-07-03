@@ -1,45 +1,31 @@
 This is a very simple tester for null0 tiled map API.
 
-I create a game-map style `adventure_map.h`, and a little user-code to define what happens, which could be lightly modified to do some other style (like SMB) then things are defined as objects in the [Tiled](https://www.mapeditor.org/) maps.
+I create a game-map style `adventure.h`, and a little user-code to define what happens, which could be lightly modified to do some other style (like SMB) then things are defined as objects in the [Tiled](https://www.mapeditor.org/) maps.
 
 ![screenshot](screenshot.png)
 
 I am using [this fork of pntr_tiled](https://github.com/RobLoach/pntr_tiled/pull/24) that has external tilesheets and better object-support.
 
-```shell
-# build native
-$ cmake -B build
-$ cmake --build build
 
-$ ./build/lop
-```
+```bash
 
-for web:
+# watch web for change, rebuild
+npm start
+
+# watch native for change, rebuild
+npm run native:watvh
 
 
-```shell
-# build web
-$ emcmake cmake -B wbuild
-$ cmake --build wbuild
 
-# web-server
-$ npx -y live-server docs
+# just build native
+npm run native
 
-# auto-reload build (in another terminal)
-$ watch 'cmake --build wbuild'
-```
+# just build web
+npm run web
 
-for debugging:
+# clean up any built files
+npm run clean
 
-```shell
-# for fast-build/debugging
-$ cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
-$ cmake --build build
-
-# debugging
-$ lldb build/lop
-(lldb) r
-(lldb) bt
 ```
 
 ## collisions
