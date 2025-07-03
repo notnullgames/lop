@@ -94,7 +94,11 @@ static void map_bump_back(pntr_app* app, cute_tiled_object_t* object) {
 
 // called by adventure engine when player or object touches another object or a wall
 void HandleCollision(pntr_app* app, adventure_maps_t* mapContainer, cute_tiled_object_t* subject, cute_tiled_object_t* object) {
-    if (subject->id == mapContainer->player->id) {
+    // wall
+    if (object == NULL) {
+        map_bump_back(app, subject);
+    }
+    else if (subject->id == mapContainer->player->id) {
         printf("player touched '%s' (%llu - %s : %llu)\n", object->name.ptr, object->name.hash_id, object->type.ptr, object->type.hash_id);
 
         int roopiesAmount = 1;
@@ -152,7 +156,7 @@ void HandleCollision(pntr_app* app, adventure_maps_t* mapContainer, cute_tiled_o
         }
         else if (PNTR_STRCMP("trap", object->type.ptr) == 0) {
             gemsCount -= damage;
-            map_bump_back(app, subject);
+            map_bump_back(app, subject);;
         }
         else if (PNTR_STRCMP("enemy", object->type.ptr) == 0) {
             gemsCount -= damage;

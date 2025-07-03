@@ -47,6 +47,7 @@ typedef struct adventure_maps {
     float player_speed;
     bool player_walking;
     cute_tiled_layer_t* objects;
+    cute_tiled_layer_t* collisions;
 } adventure_maps_t;
 
 // callbackks
@@ -188,7 +189,10 @@ adventure_maps_t* adventure_load_all_maps(char* dirName) {
                     while(layer) {
                         if (PNTR_STRCMP("objects", layer->name.ptr) == 0) {
                             current->objects = layer;
-                            break; // nothing else needed
+                        }
+                        if (PNTR_STRCMP("collisions", layer->name.ptr) == 0) {
+                            current->collisions = layer;
+                            current->collisions->visible = false;
                         }
                         layer = layer->next;
                     }
@@ -234,22 +238,38 @@ static void adventure_move_away(adventure_maps_t* mapContainer, cute_tiled_objec
 // process input, fire events
 void adventure_update(pntr_app* app, adventure_maps_t* mapContainer, AdventureCollisionCallback handleCollision, AdventureUpdateCallback handleUpdate) {
     if (mapContainer->objects && mapContainer->player) {
-        int px = mapContainer->player->x;
-        int py = mapContainer->player->y;
 
         // check collision, call user's function
-        // TODO: add a hidden layer for solid-collisions
         pntr_rectangle hitbox = {mapContainer->player->x + 4, mapContainer->player->y + 8, 8, 8 };
+        
         cute_tiled_object_t* obj = mapContainer->objects->objects;
         while(obj) {
             if (obj->visible && obj->id != mapContainer->player->id && INTERSECT(&hitbox, obj)) {
                 handleCollision(app, mapContainer, mapContainer->player, obj);
-                mapContainer->player->x = px;
-                mapContainer->player->y = py;
             }
             handleUpdate(app, mapContainer, obj);
             obj = obj->next;
         }
+
+        // I was having issues with object collisions (especially vector-shapes) so I just used tiles
+        // TODO: this seems broke
+        // for (int y = 0; y <  mapContainer->collisions->height; ++y) {
+        //     for (int x = 0; x <  mapContainer->collisions->width; ++x) {
+        //         int index = y *  mapContainer->collisions->width + x;
+        //         int gid =  mapContainer->collisions->data[index];
+        //         if (gid) {
+        //             pntr_rectangle check = {
+        //                 x * mapContainer->map->tilewidth,
+        //                 y * mapContainer->map->tileheight,
+        //                 mapContainer->map->width * mapContainer->map->tilewidth,
+        //                 mapContainer->map->height * mapContainer->map->tileheight
+        //             };
+        //             if (INTERSECT(&hitbox, &check)) {
+        //                 handleCollision(app, mapContainer, mapContainer->player, NULL);
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 
