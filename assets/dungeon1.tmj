@@ -229,18 +229,6 @@
                 {
                  "gid":160,
                  "height":16,
-                 "id":39,
-                 "name":"fire2",
-                 "rotation":0,
-                 "type":"trap",
-                 "visible":true,
-                 "width":16,
-                 "x":16,
-                 "y":128
-                }, 
-                {
-                 "gid":160,
-                 "height":16,
                  "id":40,
                  "name":"fire2",
                  "rotation":0,

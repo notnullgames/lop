@@ -60,7 +60,7 @@ static void bump_back(cute_tiled_object_t* character, float player_speed) {
     int gid_character = character->gid / 12;
     int gid_direction = character->gid % 4;
     int gid_direction_opposite = gid_direction ^ 1;
-    
+
     character->gid = (gid_character * 12) + 1 + (gid_direction_opposite * 3);
 
     // Direction deltas: S, N, E, W
@@ -137,6 +137,10 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
                 gemCount -= value;
                 bump_back(subject, 8);
                 animation_queue_add(&animations, object, object->gid - 1, 0.4f, NULL);
+                sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
+                if (s != NULL && s->sound != NULL) {
+                    pntr_play_sound(s->sound, false);
+                }
             }
         }
 
@@ -183,7 +187,7 @@ bool Update(pntr_app* app, pntr_image* screen) {
         }
 
 
-        pntr_draw_text_wrapped(screen, font, "You died, penniless.\nSomeone will be along to attend your grave, forthwith.", 20, 180, 280, PNTR_RAYWHITE);
+        pntr_draw_text_wrapped(screen, font, "You died, penniless.\n\nSomeone will be along to attend your grave, forthwith.", 20, 180, 280, PNTR_RAYWHITE);
 
         // restart on SPACE
         if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {

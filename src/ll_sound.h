@@ -20,7 +20,7 @@ sound_holder_t* sfx_load(sound_holder_t** sounds, pntr_app* app, char* filename)
     sound_holder_t* found = (*sounds);
     while(found != NULL) {
         if (PNTR_STRCMP(found->filename, filename) == 0) {
-            // pntr_app_log_ex(PNTR_APP_LOG_DEBUG, "Sound: found '%s' (preloaded.)", filename);
+            pntr_app_log_ex(PNTR_APP_LOG_DEBUG, "Sound: found '%s' (preloaded.)", filename);
             break;
         }
         found = found->next;
@@ -30,10 +30,11 @@ sound_holder_t* sfx_load(sound_holder_t** sounds, pntr_app* app, char* filename)
         return found;
     }
     
-    // pntr_app_log_ex(PNTR_APP_LOG_DEBUG, "Sound: loading '%s' (not preloaded.)", filename);
+    pntr_app_log_ex(PNTR_APP_LOG_DEBUG, "Sound: loading '%s' (not preloaded.)", filename);
     
     sound_holder_t* current = pntr_load_memory(sizeof(sound_holder_t));
     current->filename = strdup(filename);
+    current->params = pntr_load_memory(sizeof(SfxParams));
     pntr_app_sfx_load_params(current->params, filename);
     current->sound = pntr_app_sfx_sound(app, current->params);
 
