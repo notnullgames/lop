@@ -32,12 +32,12 @@
 
 // linked list
 // this allows you to use to use as a single-map or list of preloaded maps
-typedef struct adventure_map {
+typedef struct adventure_map_t {
     cute_tiled_map_t* map;
     cute_tiled_object_t* player;
     cute_tiled_layer_t* layer_objects;
     cute_tiled_layer_t* layer_collisions;
-    struct adventure_map* next;
+    struct adventure_map_t* next;
     char* filename;
 } adventure_map_t;
 
@@ -54,7 +54,7 @@ bool adventure_check_static_collision(cute_tiled_map_t* map, cute_tiled_layer_t*
     int tile_x0 = MAX((int)(rect->x) / map->tilewidth, 0);
     int tile_y0 = MAX((int)(rect->y) / map->tileheight, 0);
     int tile_x1 = MIN((int)((rect->x + rect->width  - 1)) / map->tilewidth, layer->width - 1);
-    int tile_y1 = MIN((int)((rect->y + rect->height - 1)) / map->tileheight, layer->height - 1);
+    int tile_y1 = MIN((int)((rect->y + rect->height - 1)) / map->tileheight, layer->height);
     for (int ty = tile_y0; ty <= tile_y1; ++ty) {
         for (int tx = tile_x0; tx <= tile_x1; ++tx) {
             int idx = (ty-1) * layer->width + tx;
@@ -73,7 +73,7 @@ cute_tiled_object_t* adventure_check_object_collision(cute_tiled_layer_t* layer,
         return NULL;
     }
     for (cute_tiled_object_t* obj = layer->objects; obj; obj = obj->next) {
-        if (obj->id != subject->id && RECTS_OVERLAP(rect->x, rect->y, rect->width, rect->height, obj->x, obj->y, obj->width, obj->height)) {
+        if (obj->visible && obj->id != subject->id && RECTS_OVERLAP(rect->x, rect->y, rect->width, rect->height, obj->x, obj->y, obj->width, obj->height)) {
             return obj;
         }
     }
@@ -129,7 +129,7 @@ adventure_map_t* adventure_load(char* filename, adventure_map_t** maps) {
     adventure_map_t* found = (*maps);
     while(found != NULL) {
         if (PNTR_STRCMP(found->filename, filename) == 0) {
-            printf("found '%s' (preloaded.)", filename);
+            // pntr_app_log_ex(PNTR_APP_LOG_DEBUG, "Adventure: found '%s' (preloaded.)", filename);
             break;
         }
         found = found->next;
@@ -138,11 +138,11 @@ adventure_map_t* adventure_load(char* filename, adventure_map_t** maps) {
     if (found != NULL) {
         return found;
     }
-    printf("loading '%s' (not preloaded.)", filename);
+    // pntr_app_log_ex(PNTR_APP_LOG_DEBUG, "Adventure: loading '%s' (not preloaded.)", filename);
 
     adventure_map_t* current = pntr_load_memory(sizeof(adventure_map_t));
     current->map = pntr_load_tiled(filename);
-    current->filename = filename;
+    current->filename = strdup(filename);
 
     cute_tiled_layer_t* layer = current->map->layers;
     while(layer != NULL) {

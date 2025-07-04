@@ -7,20 +7,22 @@ I create a game-map style `adventure.h`, and a little user-code to define what h
 I am using [this fork of pntr_tiled](https://github.com/RobLoach/pntr_tiled/pull/24) that has external tilesheets and better object-support.
 
 
+I added some no-install convenience scripts, if you have node installed:
+
 ```bash
 
 # watch web for change, rebuild
 npm start
 
 # watch native for change, rebuild
-npm run native:watvh
+npm run native:watch
 
 
 
-# just build native
+# just build native (./build/lop)
 npm run native
 
-# just build web
+# just build web (docs/)
 npm run web
 
 # clean up any built files

@@ -4,7 +4,7 @@
     "native": "cmake -B build -GNinja && cmake --build build && ./build/lop",
     "native:watch": "npx -y nodemon -e c,h,png,rfx,tmj,tsj -w assets -w src -x 'killall -9 lop ; npm run native'",
     "web": "emcmake cmake -B wbuild -GNinja && cmake --build wbuild",
-    "web:watch": "",
+    "web:watch": "npx -y nodemon -e c,h,png,rfx,tmj,tsj,html,js -w assets -w src -w docs -x 'npm run web'",
     "web:server": "npx -y live-server docs",
     "start": "npm run web && npx -y npm-run-all -p web:watch web:server"
   }

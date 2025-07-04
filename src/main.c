@@ -1,22 +1,29 @@
 #define PNTR_APP_IMPLEMENTATION
+#define PNTR_APP_SFX_IMPLEMENTATION
+#define PNTR_TILED_IMPLEMENTATION
+
 #define PNTR_ENABLE_VARGS
 #define PNTR_ENABLE_DEFAULT_FONT
+
 #include "pntr_app.h"
-#define PNTR_TILED_IMPLEMENTATION
 #include "pntr_tiled.h"
 
 #include "adventure.h"
 
-// default font for dialogs
-static pntr_font* font;
+// I'm really into linked-lists right now
+#include "ll_sound.h"
+#include "ll_animation_queue.h"
 
 // head of linked list
 static adventure_map_t* maps = NULL;
-static adventure_map_t* currentMap = NULL;
+static sound_holder_t* sounds = NULL;
+static animation_queue_t* animations = NULL;
 
-// these are pre-loaded maps used for UI
-adventure_map_t* dialogMap = NULL;
-adventure_map_t* titleMap = NULL;
+// default font for dialogs
+static pntr_font* font;
+
+// current-loaded game map
+static adventure_map_t* currentMap = NULL;
 
 // eventually, I could get these from the map somehow
 static float player_speed = 200;
@@ -30,64 +37,14 @@ static int gid_direction = 0;
 // if there is a current-dialog, it triggers game to pause
 static char dialogText[1024] = {0};
 
-bool Init(pntr_app* app) {
-    font = pntr_load_font_default();
-    
-    // you can prelaod maps, just set currentMap to the one you want
-    dialogMap = adventure_load("assets/dialog.tmj", &maps);
-    adventure_load("assets/dialog.tmj", &maps);
-    adventure_load("assets/dialog.tmj", &maps);
-    titleMap = adventure_load("assets/title.tmj", &maps);
-    currentMap = adventure_load("assets/main.tmj", &maps);
-    
-    return true;
-}
+// set this to false, for 1-time render
+static bool shownDialog = true;
 
-// this is called when the player or an NPC touches something
-// object will be NULL, if it's static geometry (from collision layer)
-void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_object_t* subject, cute_tiled_object_t* object) {
-    if (object == NULL) {
-        printf("%s bumped static\n", subject->name.ptr);
-    } else {
-        // get all properties from object
-        char filename[PNTR_PATH_MAX] = {0};
-        char sound[PNTR_PATH_MAX] = {0};
+// set this to tru to show the title-screen
+static bool showTitle = true;
 
-        for (int i = 0; i < object->property_count; i++) {
-            cute_tiled_property_t* prop = &object->properties[i];
-            if (prop->type == CUTE_TILED_PROPERTY_STRING) {
-                if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
-                    dialogText[0] = 0;
-                    PNTR_STRCAT(dialogText, prop->data.string.ptr);
-                }
-                else if (PNTR_STRCMP("filename", prop->name.ptr) == 0) {
-                    PNTR_STRCAT(filename, "assets/");
-                    PNTR_STRCAT(filename, prop->data.string.ptr);
-                }
-                else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
-                    PNTR_STRCAT(filename, "assets/rfx/");
-                    PNTR_STRCAT(filename, prop->data.string.ptr);
-                }
-            }
-        }
-
-        if (PNTR_STRCMP(subject->name.ptr, "player") == 0) {
-            if (PNTR_STRCMP(object->type.ptr, "portal") == 0) {
-                if (filename[0] != 0) {
-                    PNTR_STRCAT(filename, ".tmj");
-                    currentMap = adventure_load(filename, &maps);
-                } else {
-                    pntr_app_log(PNTR_APP_LOG_WARNING, "No filename set for portal.");
-                }
-            }
-        }
-
-        if (sound[0] != 0) {
-            PNTR_STRCAT(sound, ".rfx");
-            // TODO: play the sound from sound LL
-        }
-    }
-}
+// your roopies
+static int gemCount = 0;
 
 // we can derive the correct tile (specific to my spritesheet layout)
 // since each row (12 tiles) is a character, broken into 3 frames per direction
@@ -98,16 +55,181 @@ static void set_gid(cute_tiled_object_t* character, int gid_direction, int gid_w
     character->gid = (gid_character*12) + 1 + gid_walking + (gid_direction*3);
 }
 
+// move in opposite direction currently facing
+static void bump_back(cute_tiled_object_t* character, float player_speed) {
+    int gid_character = character->gid / 12;
+    int gid_direction = character->gid % 4;
+    int gid_direction_opposite = gid_direction ^ 1;
+
+    printf("bump back: %d %d\n", gid_character, gid_direction, gid_direction_opposite);
+    character->gid = (gid_character * 12) + 1 + (gid_direction_opposite * 3);
+
+    // Direction deltas: S, N, E, W
+    const int dx[4] = { 0,  0,  1, -1 };
+    const int dy[4] = { 1, -1,  0,  0 };
+
+    // Move in the opposite direction
+    character->x += dx[gid_direction_opposite] * player_speed;
+    character->y += dy[gid_direction_opposite] * player_speed;
+}
+
+// this is called when the player or an NPC touches something
+// object will be NULL, if it's static geometry (from collision layer)
+void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_object_t* subject, cute_tiled_object_t* object) {
+    if (gemCount < 0) {
+        // nothing happens when you're dead
+        return;
+    }
+    if (object == NULL) {
+        pntr_app_log_ex(PNTR_APP_LOG_DEBUG,"Map: %s bumped static\n", subject->name.ptr);
+    } else {
+        // get all properties from object
+        char sound[PNTR_PATH_MAX] = {0};
+        int value = 1;
+
+        for (int i = 0; i < object->property_count; i++) {
+            cute_tiled_property_t* prop = &object->properties[i];
+            if (prop->type == CUTE_TILED_PROPERTY_STRING) {
+                if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
+                    dialogText[0] = 0;
+                    PNTR_STRCAT(dialogText, prop->data.string.ptr);
+                    shownDialog = false;
+                }
+                else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
+                    PNTR_STRCAT(sound, "assets/rfx/");
+                    PNTR_STRCAT(sound, prop->data.string.ptr);
+                    PNTR_STRCAT(sound, ".rfx");
+                }
+                else if (PNTR_STRCMP("facing", prop->name.ptr) == 0) {
+                    // TODO: use this to set directiopn of player on portal
+                }
+            }
+            else if (prop->type == CUTE_TILED_PROPERTY_INT) {
+                if (PNTR_STRCMP("pos_x", prop->name.ptr) == 0) {
+                    // TODO: use this to set position of player on portal
+                }
+                else if (PNTR_STRCMP("pos_y", prop->name.ptr) == 0) {
+                    // TODO: use this to set position of player on portal
+                }
+                else if (PNTR_STRCMP("value", prop->name.ptr) == 0) {
+                    value = prop->data.integer;
+                }
+            }
+        }
+
+        if (PNTR_STRCMP(subject->name.ptr, "player") == 0) {
+            if (PNTR_STRCMP(object->type.ptr, "portal") == 0) {
+                // portal name is the map it links to
+                char filename[PNTR_PATH_MAX] = {0};
+                PNTR_STRCAT(filename, "assets/");
+                PNTR_STRCAT(filename, object->name.ptr);
+                PNTR_STRCAT(filename, ".tmj");
+                currentMap = adventure_load(filename, &maps);
+            }
+            else if (PNTR_STRCMP(object->type.ptr, "loot") == 0) {
+                object->visible = false;
+                gemCount += value;
+            }
+            else if (PNTR_STRCMP(object->type.ptr, "trap") == 0) {
+                set_gid(object, 0, 1);
+                gemCount -= value;
+                bump_back(subject, 8);
+                animation_queue_add(&animations, object, object->gid - 1, 0.4f, NULL);
+            }
+        }
+
+        // anything can have a sound prop
+        if (sound[0] != 0) {
+            // sound_holder_t* s = sfx_load(&sounds, app, sound);
+            // if (s != NULL && s->sound != NULL) {
+            //     pntr_play_sound(s->sound, false);
+            // }
+        }
+    }
+}
+
+bool Init(pntr_app* app) {
+    font = pntr_load_font_default();
+    
+    // you can prelaod any maps too, just set currentMap to the one you want
+    currentMap = adventure_load("assets/main.tmj", &maps);
+    
+    return true;
+}
+
+void Close(pntr_app* app) {
+    while(maps != NULL) {
+       adventure_unload(&maps);
+    }
+    // TODO: unload sounds
+    // TODO: unload unfired animations
+}
+
 
 bool Update(pntr_app* app, pntr_image* screen) {
-    // if dialog is open, just render that once
-    if (dialogText[0] != 0) {
-        printf("SIGN: %s\n", dialogText);
+    float dt = pntr_app_delta_time(app);
+
+    // no roopies, you're dead!
+    if (gemCount < 0) {
+        adventure_map_t* dialogMap = adventure_load("assets/dead.tmj", &maps);
+        
+        if (dialogMap != NULL && dialogMap->map != NULL) {
+            pntr_clear_background(screen, dialogMap->map->backgroundcolor ? pntr_tiled_color(dialogMap->map->backgroundcolor) : PNTR_BLACK);
+            pntr_update_tiled(dialogMap->map,  dt);
+            dialogMap->player->y -= dt * (player_speed/8);
+            pntr_draw_tiled(screen, dialogMap->map, 0, 0, PNTR_WHITE);
+        }
+
+
+        pntr_draw_text_wrapped(screen, font, "You died, penniless.\nSomeone will be along to attend your grave, forthwith.", 20, 180, 280, PNTR_RAYWHITE);
+
+        // restart on SPACE
+        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+            gemCount = 0;
+            // unload all maps to reset state
+            while(maps != NULL) {
+                adventure_unload(&maps);
+            }
+            currentMap = adventure_load("assets/main.tmj", &maps);
+        }
+
         return true;
     }
 
-    if (currentMap != NULL) {
-        float dt = pntr_app_delta_time(app);
+    if (showTitle) {
+        adventure_map_t* titleMap = adventure_load("assets/title.tmj", &maps);
+        pntr_update_tiled(titleMap->map,  dt);
+        pntr_clear_background(screen, titleMap->map->backgroundcolor ? pntr_tiled_color(titleMap->map->backgroundcolor) : PNTR_BLACK);
+        pntr_draw_tiled(screen, titleMap->map, 0, 0, PNTR_WHITE);
+        pntr_draw_text(screen, font, "the legend\n of pntr", 130, 100, PNTR_RAYWHITE);
+
+        // start on SPACE
+        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+            showTitle = false;
+        }
+
+        return true;
+    }
+
+    // if dialog is open, just render that once
+    else if (dialogText[0] != 0) {
+        // 1-time render of dialog map
+        if (!shownDialog) {
+            shownDialog = true;
+            adventure_map_t* dialogMap = adventure_load("assets/dialog.tmj", &maps);
+            pntr_draw_tiled(screen, dialogMap->map, 0, 0, PNTR_WHITE);
+            pntr_draw_text_wrapped(screen, font, dialogText, 20, 180, 280, PNTR_RAYWHITE);
+        }
+        // close on SPACE
+        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+            dialogText[0] = 0;
+        }
+        return true;
+    }
+
+    else if (currentMap != NULL) {
+        animation_queue_run(&animations, dt);
+
         pntr_vector req = {0};
         pntr_vector camera = {0};
 
@@ -147,7 +269,13 @@ bool Update(pntr_app* app, pntr_image* screen) {
         pntr_update_tiled(currentMap->map,  dt);
         pntr_clear_background(screen, currentMap->map->backgroundcolor ? pntr_tiled_color(currentMap->map->backgroundcolor) : PNTR_BLACK);
         pntr_draw_tiled(screen, currentMap->map, camera.x, camera.y, PNTR_WHITE);
-    } else {
+
+        if (gemCount > 0) {
+            pntr_draw_text_ex(screen, font, 10, 10, PNTR_RAYWHITE, "GEMS: %d", gemCount);
+        }
+    }
+
+    else {
         pntr_app_log(PNTR_APP_LOG_WARNING, "No map loaded.");
     }
 
@@ -157,12 +285,6 @@ bool Update(pntr_app* app, pntr_image* screen) {
 // this is not used directly, but I define it, because it seems needed for web
 void Event(pntr_app* app, pntr_app_event* event) {}
 
-
-void Close(pntr_app* app) {
-    while(maps != NULL) {
-       adventure_unload(&maps);
-    }
-}
 
 pntr_app Main(int argc, char* argv[]) {
 #ifdef PNTR_APP_RAYLIB
