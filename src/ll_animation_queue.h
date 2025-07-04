@@ -1,6 +1,8 @@
 // this is a linked-list for animation-timeouts (pntr_tiled)
 // you can schedule a change to a gid for later
 
+// TODO: implement a "timed command queue" instead, so I can do all sorts oif things later
+
 // push to front of LL
 #ifndef LL_PUSH
 #define LL_PUSH(head, node) do { (node)->next = (head); (head) = (node); } while(0)

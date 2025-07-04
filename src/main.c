@@ -173,7 +173,7 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
             else if (PNTR_STRCMP(object->type.ptr, "enemy") == 0) {
                 gemCount -= value;
                 // there can be weird collision bugs with moving thing bumping you wherever
-                // bump_back(subject, 8);
+                bump_back(subject, 8);
                 sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
                 if (s != NULL && s->sound != NULL) {
                     pntr_play_sound(s->sound, false);
