@@ -19,8 +19,11 @@ npm run native:watch
 
 
 
-# just build native (./build/lop)
+# just build & run native (./build/lop)
 npm run native
+
+# just build & run native (./build/lop) in a debugger (type bt to see backtrace)
+npm run debug
 
 # just build web (docs/)
 npm run web
@@ -34,5 +37,5 @@ npm run clean
 
 Add a couple object-layers to your map:
 
-- `objects` - put the player & anything they interact with here. Collision is per-tile-square.
-- `collisions` - I also want non-interactive (static geometry) collisions, but there some issues: cute_tiled does not like shapes, etc
+- `objects` - put the player & anything they interact with here. Collision is based on player-hitbox (covers the body) to whole-tile.
+- `collisions` - I also want non-interactive (static geometry) collisions, but there some issues: cute_tiled does not like shapes, etc. I just used regular tiles here. it's not as fine-grained, but works fine for simple game

@@ -1,9 +1,10 @@
 {
   "scripts":  {
     "clean": "npx -y rimraf docs/lop.* build wbuild",
-    "native": "cmake -B build -GNinja && cmake --build build && ./build/lop",
+    "native": "cmake -B build -GNinja -DCMAKE_BUILD_TYPE=Release && cmake --build build && ./build/lop",
+    "debug": "cmake -B build -GNinja -DCMAKE_BUILD_TYPE=Debug && cmake --build build && lldb -o run ./build/lop",
     "native:watch": "npx -y nodemon -e c,h,png,rfx,tmj,tsj -w assets -w src -x 'killall -9 lop ; npm run native'",
-    "web": "emcmake cmake -B wbuild -GNinja && cmake --build wbuild",
+    "web": "emcmake cmake -B wbuild -GNinja -DCMAKE_BUILD_TYPE=Release && cmake --build wbuild",
     "web:watch": "npx -y nodemon -e c,h,png,rfx,tmj,tsj,html,js -w assets -w src -w docs -x 'npm run web'",
     "web:server": "npx -y live-server docs",
     "start": "npm run web && npx -y npm-run-all -p web:watch web:server"

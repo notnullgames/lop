@@ -142,10 +142,10 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
 
         // anything can have a sound prop
         if (sound[0] != 0) {
-            // sound_holder_t* s = sfx_load(&sounds, app, sound);
-            // if (s != NULL && s->sound != NULL) {
-            //     pntr_play_sound(s->sound, false);
-            // }
+            sound_holder_t* s = sfx_load(&sounds, app, sound);
+            if (s != NULL && s->sound != NULL) {
+                pntr_play_sound(s->sound, false);
+            }
         }
     }
 }
