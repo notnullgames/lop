@@ -4,6 +4,7 @@
 
 #define PNTR_ENABLE_VARGS
 #define PNTR_ENABLE_DEFAULT_FONT
+// #define DEBUG
 
 #include "pntr_app.h"
 #include "pntr_tiled.h"
@@ -56,22 +57,25 @@ static void set_gid(cute_tiled_object_t* character, int gid_direction, int gid_w
     character->gid = (gid_character*12) + 1 + gid_walking + (gid_direction*3);
 }
 
-// move in opposite direction currently facing
-static void bump_back(cute_tiled_object_t* character, float player_speed) {
-    int gid_character = character->gid / 12;
-    int gid_direction = character->gid % 4;
-    int gid_direction_opposite = gid_direction ^ 1;
-
-    character->gid = (gid_character * 12) + 1 + (gid_direction_opposite * 3);
-
+// move in opposite direction currently facing, if not colliding
+static void bump_back(cute_tiled_object_t* character, float player_speed, cute_tiled_map_t* map, cute_tiled_layer_t* collision_layer, const pntr_rectangle* player_rect) {;
     // Direction deltas: S, N, E, W
-    const int dx[4] = { 0,  0,  1, -1 };
-    const int dy[4] = { 1, -1,  0,  0 };
+    const int dx[4] = { 0,  0,  -1, 1 };
+    const int dy[4] = { -1, 1,  0,  0 };
 
-    // Move in the opposite direction
-    character->x += dx[gid_direction_opposite] * player_speed;
-    character->y += dy[gid_direction_opposite] * player_speed;
+    pntr_rectangle new_rect = *player_rect;
+
+    // Calculate intended new position
+    new_rect.x = character->x + dx[character->gid % 4] * player_speed;
+    new_rect.y = character->y + dy[character->gid % 4] * player_speed;
+
+    // Only move if no collision
+    if (!adventure_check_static_collision(map, collision_layer, &new_rect)) {
+        character->x = new_rect.x;
+        character->y = new_rect.y;
+    }
 }
+
 
 // this is called when the player or an NPC touches something
 // object will be NULL, if it's static geometry (from collision layer)
@@ -84,102 +88,114 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
         pntr_app_log_ex(PNTR_APP_LOG_DEBUG,"Map: %s bumped static\n", subject->name.ptr);
     } else {
         // action only happens when it's the player
-        if (PNTR_STRCMP(subject->name.ptr, "player") == 0) {
-            // get all properties from object
-            char sound[PNTR_PATH_MAX] = {0};
-            int value = 1;
+        if (PNTR_STRCMP(subject->name.ptr, "player") != 0) {
+            return;
+        }
 
-            int pos_x = 0;
-            int pos_y = 0;
-            bool setpos = false;
+        // get all properties from object
+        char sound[PNTR_PATH_MAX] = {0};
+        int value = 1;
 
-            for (int i = 0; i < object->property_count; i++) {
-                cute_tiled_property_t* prop = &object->properties[i];
+        int pos_x = 0;
+        int pos_y = 0;
+        bool setpos = false;
 
-                if (prop->type == CUTE_TILED_PROPERTY_STRING) {
-                    if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
-                        dialogText[0] = 0;
-                        PNTR_STRCAT(dialogText, prop->data.string.ptr);
-                        shownDialog = false;
-                    }
+        for (int i = 0; i < object->property_count; i++) {
+            cute_tiled_property_t* prop = &object->properties[i];
 
-                    if (PNTR_STRCMP("name", prop->name.ptr) == 0) {
-                        PNTR_STRCAT(dialogName, prop->data.string.ptr);
-                    }
-                    
-                    else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
-                        PNTR_STRCAT(sound, "assets/rfx/");
-                        PNTR_STRCAT(sound, prop->data.string.ptr);
-                        PNTR_STRCAT(sound, ".rfx");
-                    }
-                    else if (PNTR_STRCMP("facing", prop->name.ptr) == 0) {
-                        // TODO: use this to set directiopn of player on portal
-                    }
+            if (prop->type == CUTE_TILED_PROPERTY_STRING) {
+                if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
+                    dialogText[0] = 0;
+                    PNTR_STRCAT(dialogText, prop->data.string.ptr);
+                    shownDialog = false;
                 }
-                else if (prop->type == CUTE_TILED_PROPERTY_INT) {
-                    if (PNTR_STRCMP("pos_x", prop->name.ptr) == 0) {
-                        pos_x = prop->data.integer;
-                        setpos = true;
-                    }
-                    else if (PNTR_STRCMP("pos_y", prop->name.ptr) == 0) {
-                        pos_y = prop->data.integer;
-                        setpos = true;
-                    }
-                    else if (PNTR_STRCMP("value", prop->name.ptr) == 0) {
-                        value = prop->data.integer;
-                    }
+
+                if (PNTR_STRCMP("name", prop->name.ptr) == 0) {
+                    PNTR_STRCAT(dialogName, prop->data.string.ptr);
+                }
+                
+                else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
+                    PNTR_STRCAT(sound, "assets/rfx/");
+                    PNTR_STRCAT(sound, prop->data.string.ptr);
+                    PNTR_STRCAT(sound, ".rfx");
+                }
+                else if (PNTR_STRCMP("facing", prop->name.ptr) == 0) {
+                    // TODO: use this to set directiopn of player on portal
                 }
             }
-
-            // Now we use all the props
-
-            // anything can have a sound prop
-            if (sound[0] != 0) {
-                sound_holder_t* s = sfx_load(&sounds, app, sound);
-                if (s != NULL && s->sound != NULL) {
-                    pntr_play_sound(s->sound, false);
+            else if (prop->type == CUTE_TILED_PROPERTY_INT) {
+                if (PNTR_STRCMP("pos_x", prop->name.ptr) == 0) {
+                    pos_x = prop->data.integer;
+                    setpos = true;
                 }
-            }
-
-            if (PNTR_STRCMP(object->type.ptr, "portal") == 0) {
-                // portal name is the map it links to
-                char filename[PNTR_PATH_MAX] = {0};
-                PNTR_STRCAT(filename, "assets/");
-                PNTR_STRCAT(filename, object->name.ptr);
-                PNTR_STRCAT(filename, ".tmj");
-                currentMap = adventure_load(filename, &maps);
-                if (setpos && currentMap != NULL && currentMap->player != NULL) {
-                    currentMap->player->x = pos_y;
-                    currentMap->player->y = pos_y;
+                else if (PNTR_STRCMP("pos_y", prop->name.ptr) == 0) {
+                    pos_y = prop->data.integer;
+                    setpos = true;
                 }
-            }
-            else if (PNTR_STRCMP(object->type.ptr, "loot") == 0) {
-                object->visible = false;
-                gemCount += value;
-            }
-
-            // traps have 3 frames, with animation in middle
-            // this will animate, wait 0.4s, then  go back to "default state"
-            else if (PNTR_STRCMP(object->type.ptr, "trap") == 0) {
-                set_gid(object, 0, 1);
-                gemCount -= value;
-                bump_back(subject, 8);
-                animation_queue_add(&animations, object, object->gid - 1, 0.4f, NULL);
-                sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
-                if (s != NULL && s->sound != NULL) {
-                    pntr_play_sound(s->sound, false);
-                }
-            }
-            else if (PNTR_STRCMP(object->type.ptr, "enemy") == 0) {
-                gemCount -= value;
-                // there can be weird collision bugs with moving thing bumping you wherever
-                bump_back(subject, 8);
-                sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
-                if (s != NULL && s->sound != NULL) {
-                    pntr_play_sound(s->sound, false);
+                else if (PNTR_STRCMP("value", prop->name.ptr) == 0) {
+                    value = prop->data.integer;
                 }
             }
         }
+
+        // Now we use all the props
+
+        // anything can have a sound prop
+        if (sound[0] != 0) {
+            sound_holder_t* s = sfx_load(&sounds, app, sound);
+            if (s != NULL && s->sound != NULL) {
+                pntr_play_sound(s->sound, false);
+            }
+        }
+
+        if (PNTR_STRCMP(object->type.ptr, "portal") == 0) {
+            // portal name is the map it links to
+            char filename[PNTR_PATH_MAX] = {0};
+            PNTR_STRCAT(filename, "assets/");
+            PNTR_STRCAT(filename, object->name.ptr);
+            PNTR_STRCAT(filename, ".tmj");
+            currentMap = adventure_load(filename, &maps);
+            if (setpos && currentMap != NULL && currentMap->player != NULL) {
+                currentMap->player->x = pos_y;
+                currentMap->player->y = pos_y;
+            }
+        }
+        else if (PNTR_STRCMP(object->type.ptr, "loot") == 0) {
+            object->visible = false;
+            gemCount += value;
+        }
+        
+        else if (PNTR_STRCMP(object->type.ptr, "chest") == 0) {
+            if (object->gid != 102 && object->gid != 104) {
+                gemCount += value;
+                object->gid = 102;
+                animation_queue_add(&animations, object, 104, 0.2f, NULL);
+            }
+        }
+
+        // traps have 3 frames, with animation in middle
+        // this will animate, wait 0.4s, then  go back to "default state"
+        else if (PNTR_STRCMP(object->type.ptr, "trap") == 0) {
+            set_gid(object, 0, 1);
+            gemCount -= value;
+            bump_back(subject, 4, currentMap->map, currentMap->layer_collisions, &player_hitbox);
+
+            animation_queue_add(&animations, object, object->gid - 1, 0.4f, NULL);
+            sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
+            if (s != NULL && s->sound != NULL) {
+                pntr_play_sound(s->sound, false);
+            }
+        }
+        else if (PNTR_STRCMP(object->type.ptr, "enemy") == 0) {
+            gemCount -= value;
+            // there can be weird collision bugs with moving thing bumping you wherever
+            bump_back(subject, 4, currentMap->map, currentMap->layer_collisions, &player_hitbox);
+            sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
+            if (s != NULL && s->sound != NULL) {
+                pntr_play_sound(s->sound, false);
+            }
+        }
+        
     }
 }
 
@@ -345,6 +361,10 @@ bool Update(pntr_app* app, pntr_image* screen) {
         if (gemCount > 0) {
             pntr_draw_text_ex(screen, font, 10, 10, PNTR_RAYWHITE, "GEMS: %d", gemCount);
         }
+
+#ifdef DEBUG
+            pntr_draw_text_ex(screen, font, 230, 220, PNTR_RAYWHITE, "P: %.0fx%.0f", currentMap->player->x, currentMap->player->y);
+#endif
     }
 
     else {
@@ -360,7 +380,9 @@ void Event(pntr_app* app, pntr_app_event* event) {}
 
 pntr_app Main(int argc, char* argv[]) {
 #ifdef PNTR_APP_RAYLIB
+#ifndef DEBUG
     SetTraceLogLevel(LOG_ERROR);
+#endif
 #endif
 
     return (pntr_app) {

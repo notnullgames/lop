@@ -129,21 +129,6 @@
                  "name":"dungeon1",
                  "properties":[
                         {
-                         "name":"facing",
-                         "type":"string",
-                         "value":"W"
-                        }, 
-                        {
-                         "name":"pos_x",
-                         "type":"int",
-                         "value":144
-                        }, 
-                        {
-                         "name":"pos_y",
-                         "type":"int",
-                         "value":48
-                        }, 
-                        {
                          "name":"sound",
                          "type":"string",
                          "value":"activate"
@@ -297,12 +282,12 @@
                         {
                          "name":"pos_x",
                          "type":"int",
-                         "value":80
+                         "value":20
                         }, 
                         {
                          "name":"pos_y",
                          "type":"int",
-                         "value":192
+                         "value":100
                         }],
                  "rotation":0,
                  "type":"portal",
@@ -310,6 +295,24 @@
                  "width":16,
                  "x":304,
                  "y":128
+                }, 
+                {
+                 "gid":101,
+                 "height":16,
+                 "id":195,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"value",
+                         "type":"int",
+                         "value":100
+                        }],
+                 "rotation":0,
+                 "type":"chest",
+                 "visible":true,
+                 "width":16,
+                 "x":240,
+                 "y":288
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -421,7 +424,7 @@
          "y":0
         }],
  "nextlayerid":14,
- "nextobjectid":193,
+ "nextobjectid":196,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
