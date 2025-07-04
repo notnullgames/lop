@@ -1,344 +1,337 @@
 #define PNTR_APP_IMPLEMENTATION
+#define PNTR_APP_SFX_IMPLEMENTATION
+#define PNTR_TILED_IMPLEMENTATION
+
 #define PNTR_ENABLE_VARGS
 #define PNTR_ENABLE_DEFAULT_FONT
+
 #include "pntr_app.h"
-#define PNTR_TILED_IMPLEMENTATION
 #include "pntr_tiled.h"
 
 #include "adventure.h"
 
+// I'm really into linked-lists right now
+#include "ll_sound.h"
+#include "ll_animation_queue.h"
+
+// head of linked list
+static adventure_map_t* maps = NULL;
+static sound_holder_t* sounds = NULL;
+static animation_queue_t* animations = NULL;
+
 // default font for dialogs
 static pntr_font* font;
 
-// show the title-screen, initially
+// current-loaded game map
+static adventure_map_t* currentMap = NULL;
+
+// eventually, I could get these from the map somehow
+static float player_speed = 200;
+
+// on a 16x16 map, it's at the "body" of a charater tile
+static pntr_rectangle player_hitbox = {4, 8, 8, 8};
+
+// stores direction across frames, so if you face a way, it will keep facing that way
+static int gid_direction = 0; 
+
+// if there is a current-dialog, it triggers game to pause
+static char dialogText[1024] = {0};
+
+// set this to false, for 1-time render
+static bool shownDialog = true;
+
+// set this to tru to show the title-screen
 static bool showTitle = true;
 
-// set first char to '\0' to disable, trigggers dialog
-static char signText[500] = {0};
+// your roopies
+static int gemCount = 0;
 
-// main title map
-static adventure_maps_t* titleMap = NULL;
-
-// a map that shows a dialog (rendered over playMap)
-static adventure_maps_t* dialogMap = NULL;
-
-// the current map for the actual game
-static adventure_maps_t* playMap = NULL;
-
-// the current foreground-map
-static adventure_maps_t* currentMap = NULL;
-
-// all maps
-static adventure_maps_t* maps;
-
-// player's monies
-static int gemsCount = 0;
-
-typedef struct sound_holder_t {
-    struct sound_holder_t* next;
-    char* name;
-} sound_holder_t;
-
-
-// using gid, get the current direction (each row has 12, 1 character per row, 3 tiles per direction)
-AdventureDirection map_get_current_direction(cute_tiled_object_t* object) {
-    if (object == NULL) {
-        return ADVENTURE_DIRECTION_NONE;
-    }
-    return (AdventureDirection) ((object->gid % 12) % 4) + 1;
+// we can derive the correct tile (specific to my spritesheet layout)
+// since each row (12 tiles) is a character, broken into 3 frames per direction
+// with the 2nd frame as the indicator for "walking animation"
+// this will work with my spritesheet, but you can adjust for yours, if it's differnt
+static void set_gid(cute_tiled_object_t* character, int gid_direction, int gid_walking) {
+    int gid_character = character->gid/12;
+    character->gid = (gid_character*12) + 1 + gid_walking + (gid_direction*3);
 }
 
-// set object to correct sprite for the direction
-static void map_walk(cute_tiled_object_t* object, AdventureDirection direction, bool walking) {
-    if (object == NULL) {
+// move in opposite direction currently facing
+static void bump_back(cute_tiled_object_t* character, float player_speed) {
+    int gid_character = character->gid / 12;
+    int gid_direction = character->gid % 4;
+    int gid_direction_opposite = gid_direction ^ 1;
+
+    character->gid = (gid_character * 12) + 1 + (gid_direction_opposite * 3);
+
+    // Direction deltas: S, N, E, W
+    const int dx[4] = { 0,  0,  1, -1 };
+    const int dy[4] = { 1, -1,  0,  0 };
+
+    // Move in the opposite direction
+    character->x += dx[gid_direction_opposite] * player_speed;
+    character->y += dy[gid_direction_opposite] * player_speed;
+}
+
+// this is called when the player or an NPC touches something
+// object will be NULL, if it's static geometry (from collision layer)
+void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_object_t* subject, cute_tiled_object_t* object) {
+    if (gemCount < 0) {
+        // nothing happens when you're dead
         return;
     }
-    // figure out which row is the current character. this is very specifc to my tileset layout
-    int character = (object->gid-1) / 12;
-    object->gid = (character*12) + ((int) (direction-1) * 3) + 1;
-    if (walking) {
-        object->gid++;
-    }
-}
-
-// move the object in the opposite direction they are facing, facing the same way
-static void map_bump_back(pntr_app* app, cute_tiled_object_t* object) {
-    AdventureDirection direction = map_get_current_direction(object);
-    float dt = pntr_app_delta_time(app);
-
-    // TODO: I am just using player-speed, but should figure out speed for every object
-    float speed = 200;
-    if (currentMap != NULL) {
-        speed=currentMap->player_speed;
-    }
-    
-    if (direction == ADVENTURE_DIRECTION_NONE) {
-        return;
-    }
-    else if (direction == ADVENTURE_DIRECTION_SOUTH) {
-       object->y += speed * dt;
-    }
-    else if (direction == ADVENTURE_DIRECTION_NORTH) {
-        object->y -= speed * dt;
-    }
-    else if (direction == ADVENTURE_DIRECTION_EAST) {
-        object->x += speed * dt;
-    }
-    else if (direction == ADVENTURE_DIRECTION_WEST) {
-        object->x -= speed * dt;
-    }
-    map_walk(object, direction, false);
-}
-
-
-
-// called by adventure engine when player or object touches another object or a wall
-void HandleCollision(pntr_app* app, adventure_maps_t* mapContainer, cute_tiled_object_t* subject, cute_tiled_object_t* object) {
-    // wall
     if (object == NULL) {
-        map_bump_back(app, subject);
-    }
-    else if (subject->id == mapContainer->player->id) {
-        printf("player touched '%s' (%llu - %s : %llu)\n", object->name.ptr, object->name.hash_id, object->type.ptr, object->type.hash_id);
-
-        int roopiesAmount = 1;
-        int damage = 1;
-        pntr_vector pos = {0};
-        AdventureDirection direction = ADVENTURE_DIRECTION_NONE;
+        pntr_app_log_ex(PNTR_APP_LOG_DEBUG,"Map: %s bumped static\n", subject->name.ptr);
+    } else {
+        // get all properties from object
+        char sound[PNTR_PATH_MAX] = {0};
+        int value = 1;
 
         for (int i = 0; i < object->property_count; i++) {
             cute_tiled_property_t* prop = &object->properties[i];
-            
             if (prop->type == CUTE_TILED_PROPERTY_STRING) {
-                // if it has "text" prop, just set signText
                 if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
-                    signText[0] = '\0';
-                    PNTR_STRCAT(signText, prop->data.string.ptr);
+                    dialogText[0] = 0;
+                    PNTR_STRCAT(dialogText, prop->data.string.ptr);
+                    shownDialog = false;
+                }
+                else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
+                    PNTR_STRCAT(sound, "assets/rfx/");
+                    PNTR_STRCAT(sound, prop->data.string.ptr);
+                    PNTR_STRCAT(sound, ".rfx");
                 }
                 else if (PNTR_STRCMP("facing", prop->name.ptr) == 0) {
-                    direction = adventure_direction_from_string(prop->data.string.ptr);
+                    // TODO: use this to set directiopn of player on portal
                 }
             }
             else if (prop->type == CUTE_TILED_PROPERTY_INT) {
                 if (PNTR_STRCMP("pos_x", prop->name.ptr) == 0) {
-                    pos.x = prop->data.integer;
+                    // TODO: use this to set position of player on portal
                 }
                 else if (PNTR_STRCMP("pos_y", prop->name.ptr) == 0) {
-                    pos.y = prop->data.integer;
+                    // TODO: use this to set position of player on portal
                 }
-                else if (PNTR_STRCMP("roopees", prop->name.ptr) == 0) {
-                    roopiesAmount = prop->data.integer;
-                }
-                else if (PNTR_STRCMP("damage", prop->name.ptr) == 0) {
-                    damage = prop->data.integer;
+                else if (PNTR_STRCMP("value", prop->name.ptr) == 0) {
+                    value = prop->data.integer;
                 }
             }
         }
 
-        if (PNTR_STRCMP("portal", object->type.ptr) == 0) {
-            if (direction != ADVENTURE_DIRECTION_NONE || (pos.x != 0 && pos.y != 0)) {
-                currentMap = adventure_find_map(maps, object->name.ptr);
-                playMap = currentMap;
-                if (currentMap != NULL && currentMap->player != NULL) {
-                    if (pos.x != 0 && pos.y != 0) {
-                        currentMap->player->x = pos.x;
-                        currentMap->player->y = pos.y;
-                    }
-                    if (direction != ADVENTURE_DIRECTION_NONE) {
-                        currentMap->player_direction = direction;
-                    }
+        if (PNTR_STRCMP(subject->name.ptr, "player") == 0) {
+            if (PNTR_STRCMP(object->type.ptr, "portal") == 0) {
+                // portal name is the map it links to
+                char filename[PNTR_PATH_MAX] = {0};
+                PNTR_STRCAT(filename, "assets/");
+                PNTR_STRCAT(filename, object->name.ptr);
+                PNTR_STRCAT(filename, ".tmj");
+                currentMap = adventure_load(filename, &maps);
+            }
+            else if (PNTR_STRCMP(object->type.ptr, "loot") == 0) {
+                object->visible = false;
+                gemCount += value;
+            }
+
+            // traps have 3 frames, with animation in middle
+            // this will animate, wait 0.4s, then  go back to "default state"
+            else if (PNTR_STRCMP(object->type.ptr, "trap") == 0) {
+                set_gid(object, 0, 1);
+                gemCount -= value;
+                bump_back(subject, 8);
+                animation_queue_add(&animations, object, object->gid - 1, 0.4f, NULL);
+                sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
+                if (s != NULL && s->sound != NULL) {
+                    pntr_play_sound(s->sound, false);
+                }
+            }
+            else if (PNTR_STRCMP(object->type.ptr, "enemy") == 0) {
+                gemCount -= value;
+                bump_back(subject, 8);
+                sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
+                if (s != NULL && s->sound != NULL) {
+                    pntr_play_sound(s->sound, false);
                 }
             }
         }
-        else if (PNTR_STRCMP("loot", object->type.ptr) == 0) {
-            gemsCount += roopiesAmount;
-            object->visible = false;
-        }
-        else if (PNTR_STRCMP("trap", object->type.ptr) == 0) {
-            gemsCount -= damage;
-            map_bump_back(app, subject);;
-        }
-        else if (PNTR_STRCMP("enemy", object->type.ptr) == 0) {
-            gemsCount -= damage;
-            map_bump_back(app, subject);
-        } else {
-            map_bump_back(app, subject);
-        }
-    }
-}
 
-// called by adventure-engine when any object needs an update
-void HandleUpdate(pntr_app* app, adventure_maps_t* mapContainer, cute_tiled_object_t* object) {
-    bool follow = false;
-    bool avoid = false;
-    bool millabout = false;
-
-    for (int i = 0; i < object->property_count; i++) {
-        cute_tiled_property_t* prop = &object->properties[i];
-        
-        if (prop->type == CUTE_TILED_PROPERTY_BOOL) {
-            if (PNTR_STRCMP("follow", prop->name.ptr) == 0) {
-                follow = prop->data.boolean;
-            }
-            else if (PNTR_STRCMP("avoid", prop->name.ptr) == 0) {
-                avoid = prop->data.boolean;
-            }
-            else if (PNTR_STRCMP("millabout", prop->name.ptr) == 0) {
-                millabout = prop->data.boolean;
+        // anything can have a sound prop
+        if (sound[0] != 0) {
+            sound_holder_t* s = sfx_load(&sounds, app, sound);
+            if (s != NULL && s->sound != NULL) {
+                pntr_play_sound(s->sound, false);
             }
         }
-
-    }
-    
-    if (follow) {
-        adventure_move_towards(mapContainer, object, mapContainer->player, map_walk);
-    }
-    else if (avoid) {
-        adventure_move_away(mapContainer, object, mapContainer->player, map_walk);
-    }
-    else if (millabout) {
-       // TODO
-    }
-    else {
-        map_walk(mapContainer->player, mapContainer->player_direction, mapContainer->player_walking);
-    }
-
-    if (object->id == mapContainer->player->id) {
-        float dt = pntr_app_delta_time(app);
-
-        int px = mapContainer->player->x;
-        int py = mapContainer->player->y;
-        mapContainer->player_walking = false;
-
-        if (pntr_app_key_down(app, PNTR_APP_KEY_LEFT) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_LEFT)) {
-            mapContainer->player->x -= mapContainer->player_speed * dt;
-            mapContainer->player_walking = true;
-            mapContainer->player_direction = ADVENTURE_DIRECTION_WEST;
-        }
-        else if (pntr_app_key_down(app, PNTR_APP_KEY_RIGHT) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_RIGHT)) {
-            mapContainer->player->x += mapContainer->player_speed * dt;
-            mapContainer->player_walking = true;
-            mapContainer->player_direction = ADVENTURE_DIRECTION_EAST;
-        }
-        if (pntr_app_key_down(app, PNTR_APP_KEY_UP) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_UP)) {
-            mapContainer->player->y -= mapContainer->player_speed * dt;
-            mapContainer->player_walking = true;
-            mapContainer->player_direction = ADVENTURE_DIRECTION_NORTH;
-        }
-        else if (pntr_app_key_down(app, PNTR_APP_KEY_DOWN) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_DOWN)) {
-            mapContainer->player->y += mapContainer->player_speed * dt;
-            mapContainer->player_walking = true;
-            mapContainer->player_direction = ADVENTURE_DIRECTION_SOUTH;
-        }
-
-        // update player-animation
-        // TODO: I don't really need to track direction/speed/walking in mapContainer
-        map_walk(mapContainer->player, mapContainer->player_direction, mapContainer->player_walking);
     }
 }
 
 bool Init(pntr_app* app) {
     font = pntr_load_font_default();
-    maps = adventure_load_all_maps("assets/");
-    if (!maps) {
-        pntr_app_log(PNTR_APP_LOG_ERROR, "No maps found!");
-        return false;
-    }
-
-    adventure_maps_t* m = maps;
-    // not sure why I need to check name, too
-    while(m && m->name != NULL) {
-        if (PNTR_STRCMP("dialog", m->name) == 0) {
-            dialogMap = m;
-        }
-        if (PNTR_STRCMP("title", m->name) == 0) {
-            titleMap = m;
-        }
-        if (PNTR_STRCMP("main", m->name) == 0) {
-            currentMap = m;
-        }
-        m = m->next;
-    }
-
-    if (currentMap == NULL) {
-        pntr_app_log(PNTR_APP_LOG_ERROR, "Make a map called main.");
-        return false;
-    }
-
-    if (dialogMap == NULL) {
-        pntr_app_log(PNTR_APP_LOG_ERROR, "Make a map called dialog.");
-        return false;
-    }
-    if (titleMap == NULL) {
-        pntr_app_log(PNTR_APP_LOG_ERROR, "Make a map called title.");
-        return false;
-    }
-
-    playMap = currentMap;
-
-    return true;
-}
-
-void Event(pntr_app* app, pntr_app_event* event) {
-    // not used, but seems needed for web
-}
-
-bool Update(pntr_app* app, pntr_image* screen) {
-     pntr_vector camera = {0};
-
-    // choose map
-    if (showTitle) {
-        currentMap = titleMap;
-    }
-    else if (signText[0] != 0) {
-        currentMap = dialogMap;
-    }
-    else {
-        if (playMap!= NULL && playMap->player != NULL) {
-            currentMap = playMap;
-            adventure_update(app, currentMap, HandleCollision, HandleUpdate);
-            adventure_camera_look_at(screen, currentMap, currentMap->player, &camera);
-        }
-    }
-
-    // draw map
-    if (currentMap != NULL) {
-        pntr_update_tiled(currentMap->map,  pntr_app_delta_time(app));
-        if (!signText[0]){
-            pntr_clear_background(screen, currentMap->map->backgroundcolor ? pntr_tiled_color(currentMap->map->backgroundcolor) : PNTR_BLACK);
-        }
-        pntr_draw_tiled(screen, currentMap->map, camera.x, camera.y, PNTR_WHITE);
-    } else {
-        pntr_app_log(PNTR_APP_LOG_ERROR, "No map!");
-        return false;
-    }
-
-    // draw over map
-    if (showTitle) {
-        pntr_draw_text(screen, font, "The Legend of Pntr", 100, 100, PNTR_RAYWHITE);
-        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
-            showTitle = false;
-        }
-    }
-    else if (signText[0] != 0) {
-        pntr_draw_text_wrapped(screen, font, signText, 20, 180, 280, PNTR_RAYWHITE);
-        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
-            signText[0] = 0;
-            if (currentMap->player!= NULL) {
-                map_bump_back(app, currentMap->player);
-            }
-        }
-    }
-    else {
-        pntr_draw_text_ex(screen, font, 10, 10, PNTR_RAYWHITE, "GEMS: %d", gemsCount);
-    }
-
+    
+    // you can prelaod any maps too, just set currentMap to the one you want
+    currentMap = adventure_load("assets/main.tmj", &maps);
+    
     return true;
 }
 
 void Close(pntr_app* app) {
-    // TODO: cleanup
+    while(maps != NULL) {
+       adventure_unload(&maps);
+    }
+    while(animations != NULL) {
+       animation_queue_unload(&animations);
+    }
+    while(sounds != NULL) {
+       sounds_unload(&sounds);
+    }
 }
+
+
+bool Update(pntr_app* app, pntr_image* screen) {
+    float dt = pntr_app_delta_time(app);
+
+    // no roopies, you're dead!
+    if (gemCount < 0) {
+        adventure_map_t* dialogMap = adventure_load("assets/dead.tmj", &maps);
+        
+        if (dialogMap != NULL && dialogMap->map != NULL) {
+            pntr_clear_background(screen, dialogMap->map->backgroundcolor ? pntr_tiled_color(dialogMap->map->backgroundcolor) : PNTR_BLACK);
+            pntr_update_tiled(dialogMap->map,  dt);
+            dialogMap->player->y -= dt * (player_speed/8);
+            pntr_draw_tiled(screen, dialogMap->map, 0, 0, PNTR_WHITE);
+        }
+
+
+        pntr_draw_text_wrapped(screen, font, "You died, penniless.\n\nSomeone will be along to attend your grave, forthwith.", 20, 180, 280, PNTR_RAYWHITE);
+
+        // restart on SPACE
+        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+            gemCount = 0;
+            // unload all maps to reset state
+            while(maps != NULL) {
+                adventure_unload(&maps);
+            }
+            currentMap = adventure_load("assets/main.tmj", &maps);
+        }
+
+        return true;
+    }
+
+    if (showTitle) {
+        adventure_map_t* titleMap = adventure_load("assets/title.tmj", &maps);
+        pntr_update_tiled(titleMap->map,  dt);
+        pntr_clear_background(screen, titleMap->map->backgroundcolor ? pntr_tiled_color(titleMap->map->backgroundcolor) : PNTR_BLACK);
+        pntr_draw_tiled(screen, titleMap->map, 0, 0, PNTR_WHITE);
+        pntr_draw_text(screen, font, "the legend\n of pntr", 130, 100, PNTR_RAYWHITE);
+
+        // start on SPACE
+        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+            showTitle = false;
+        }
+
+        return true;
+    }
+
+    // if dialog is open, just render that once
+    else if (dialogText[0] != 0) {
+        // 1-time render of dialog map
+        if (!shownDialog) {
+            shownDialog = true;
+            adventure_map_t* dialogMap = adventure_load("assets/dialog.tmj", &maps);
+            pntr_draw_tiled(screen, dialogMap->map, 0, 0, PNTR_WHITE);
+            pntr_draw_text_wrapped(screen, font, dialogText, 20, 180, 280, PNTR_RAYWHITE);
+        }
+        // close on SPACE
+        if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
+            dialogText[0] = 0;
+        }
+        return true;
+    }
+
+    else if (currentMap != NULL) {
+        animation_queue_run(&animations, dt);
+
+        pntr_vector req = {0};
+        pntr_vector camera = {0};
+
+        if (currentMap->player != NULL){
+            int gid_walking = 0;
+
+            if (pntr_app_key_down(app, PNTR_APP_KEY_DOWN) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_DOWN)) {
+                req.y += player_speed * dt;
+                gid_direction = 0;
+                gid_walking = 1;
+            }
+            else if (pntr_app_key_down(app, PNTR_APP_KEY_UP) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_UP)) {
+                req.y -= player_speed * dt;
+                gid_direction = 1;
+                gid_walking = 1;
+            }
+            else if (pntr_app_key_down(app, PNTR_APP_KEY_RIGHT) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_RIGHT)) {
+                req.x += player_speed * dt;
+                gid_direction = 2;
+                gid_walking = 1;
+            }
+            else if (pntr_app_key_down(app, PNTR_APP_KEY_LEFT) || pntr_app_gamepad_button_down(app, 0, PNTR_APP_GAMEPAD_BUTTON_LEFT)) {
+                req.x -= player_speed * dt;
+                gid_direction = 3;
+                gid_walking = 1;
+            }
+
+            set_gid(currentMap->player, gid_direction, gid_walking);
+
+            // this requests the new position (but collisions or map bounds might deny)
+            adventure_try_to_move_player(app, currentMap, &req, &player_hitbox, &CollisionCallback);
+            adventure_camera_look_at(&camera, screen, currentMap->map, currentMap->player);
+        }
+
+        // update all objects that are not player
+
+        int random_offset_x = 0;
+        int random_offset_y = 0;
+        float random_speed = 0;
+        int random_awareness = 0;
+
+        if (currentMap->layer_objects != NULL) {
+           for (cute_tiled_object_t* obj = currentMap->layer_objects->objects; obj; obj = obj->next) {
+                if (obj->id != currentMap->player->id) {
+                    for (int i = 0; i < obj->property_count; i++) {
+                        cute_tiled_property_t* prop = &obj->properties[i];
+                        if (prop->type == CUTE_TILED_PROPERTY_BOOL) {
+                            random_offset_x = pntr_app_random(app, 0, 1);
+                            random_offset_y = pntr_app_random(app, 0, 1);
+                            random_speed =  pntr_app_random_float(app, 0, 100) / 100.0f;
+                            random_awareness = pntr_app_random(app, 1, 10);
+
+                            if (PNTR_STRCMP("follow", prop->name.ptr) == 0 && prop->data.boolean) {
+                                adventure_move_object_relative_to_close_object(currentMap->map,  currentMap->layer_collisions, obj,  currentMap->player->x + random_offset_x,  currentMap->player->y + random_offset_y, random_speed, 1, random_awareness);
+                            }
+                            if (PNTR_STRCMP("avoid", prop->name.ptr) == 0 && prop->data.boolean) {
+                                adventure_move_object_relative_to_close_object(currentMap->map,  currentMap->layer_collisions, obj, currentMap->player->x + random_offset_x,  currentMap->player->y + random_offset_y, random_speed, 0, random_awareness);
+                            }
+                        }
+                    } 
+                }
+            }
+        }
+
+        
+        pntr_update_tiled(currentMap->map,  dt);
+        pntr_clear_background(screen, currentMap->map->backgroundcolor ? pntr_tiled_color(currentMap->map->backgroundcolor) : PNTR_BLACK);
+        pntr_draw_tiled(screen, currentMap->map, camera.x, camera.y, PNTR_WHITE);
+
+        if (gemCount > 0) {
+            pntr_draw_text_ex(screen, font, 10, 10, PNTR_RAYWHITE, "GEMS: %d", gemCount);
+        }
+    }
+
+    else {
+        pntr_app_log(PNTR_APP_LOG_WARNING, "No map loaded.");
+    }
+
+    return true;
+}
+
+// this is not used directly, but I define it, because it seems needed for web
+void Event(pntr_app* app, pntr_app_event* event) {}
+
 
 pntr_app Main(int argc, char* argv[]) {
 #ifdef PNTR_APP_RAYLIB

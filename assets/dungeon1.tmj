@@ -69,6 +69,11 @@
                          "name":"pos_y",
                          "type":"int",
                          "value":192
+                        }, 
+                        {
+                         "name":"sound",
+                         "type":"string",
+                         "value":"activate"
                         }],
                  "rotation":0,
                  "type":"portal",
@@ -229,18 +234,6 @@
                 {
                  "gid":160,
                  "height":16,
-                 "id":39,
-                 "name":"fire2",
-                 "rotation":0,
-                 "type":"trap",
-                 "visible":true,
-                 "width":16,
-                 "x":16,
-                 "y":128
-                }, 
-                {
-                 "gid":160,
-                 "height":16,
                  "id":40,
                  "name":"fire2",
                  "rotation":0,
@@ -257,9 +250,9 @@
                  "name":"roopees",
                  "properties":[
                         {
-                         "name":"roopees",
-                         "type":"int",
-                         "value":10
+                         "name":"sound",
+                         "type":"string",
+                         "value":"coin"
                         }],
                  "rotation":0,
                  "type":"loot",
@@ -275,9 +268,9 @@
                  "name":"roopees",
                  "properties":[
                         {
-                         "name":"roopees",
-                         "type":"int",
-                         "value":1
+                         "name":"sound",
+                         "type":"string",
+                         "value":"coin"
                         }],
                  "rotation":0,
                  "type":"loot",
@@ -291,68 +284,23 @@
                  "height":16,
                  "id":43,
                  "name":"roopees",
+                 "properties":[
+                        {
+                         "name":"sound",
+                         "type":"string",
+                         "value":"coin"
+                        }, 
+                        {
+                         "name":"value",
+                         "type":"int",
+                         "value":5
+                        }],
                  "rotation":0,
                  "type":"loot",
                  "visible":true,
                  "width":16,
                  "x":48,
                  "y":64
-                }, 
-                {
-                 "gid":86,
-                 "height":16,
-                 "id":47,
-                 "name":"friendly spider",
-                 "properties":[
-                        {
-                         "name":"avoid",
-                         "type":"bool",
-                         "value":false
-                        }, 
-                        {
-                         "name":"follow",
-                         "type":"bool",
-                         "value":false
-                        }, 
-                        {
-                         "name":"text",
-                         "type":"string",
-                         "value":"*friendly scuttering*=\nHe seems happy to see me."
-                        }],
-                 "rotation":0,
-                 "type":"npc",
-                 "visible":true,
-                 "width":16,
-                 "x":16,
-                 "y":32
-                }, 
-                {
-                 "gid":74,
-                 "height":16,
-                 "id":48,
-                 "name":"friendly bat",
-                 "properties":[
-                        {
-                         "name":"avoid",
-                         "type":"bool",
-                         "value":false
-                        }, 
-                        {
-                         "name":"follow",
-                         "type":"bool",
-                         "value":false
-                        }, 
-                        {
-                         "name":"text",
-                         "type":"string",
-                         "value":"Aww!\nBats are so cute."
-                        }],
-                 "rotation":0,
-                 "type":"npc",
-                 "visible":true,
-                 "width":16,
-                 "x":16,
-                 "y":144
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -373,7 +321,7 @@
             254, 254, 254, 254, 254, 254, 254, 254, 254, 254, 254],
          "height":10,
          "id":12,
-         "name":"colisions",
+         "name":"collisions",
          "opacity":0.5,
          "tintcolor":"#ff2600",
          "type":"tilelayer",
