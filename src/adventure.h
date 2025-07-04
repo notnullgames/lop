@@ -1,4 +1,4 @@
-// #include <dirent.h>
+#include "math.h"
 
 // return least of 2 numbers
 #ifndef MIN
@@ -79,6 +79,95 @@ cute_tiled_object_t* adventure_check_object_collision(cute_tiled_layer_t* layer,
     }
     return NULL;
 }
+
+
+// Shared helper: computes movement direction (+1, -1, or 0) for one axis
+static float compute_axis_step(float obj_pos, float target_pos, float speed, int towards) {
+    float delta = target_pos - obj_pos;
+    if (fabsf(delta) > 0.01f) {
+        float dir = (delta > 0) ? 1.0f : -1.0f;
+        return towards ? dir * speed : -dir * speed;
+    }
+    return 0.0f;
+}
+
+// move towards/away from object
+void adventure_move_object_relative_to_object(
+    cute_tiled_map_t* map,
+    cute_tiled_layer_t* collision_layer,
+    cute_tiled_object_t* obj,
+    float player_x,
+    float player_y,
+    float speed,        // pixels per frame
+    int towards         // 1 = move towards, 0 = move away
+) {
+    float dx = player_x - obj->x;
+    float dy = player_y - obj->y;
+
+    float move_x = 0, move_y = 0;
+
+    // Move in the axis with the greatest absolute distance
+    if (fabsf(dx) > fabsf(dy)) {
+        move_x = compute_axis_step(obj->x, player_x, speed, towards);
+    } else if (fabsf(dy) > 0) {
+        move_y = compute_axis_step(obj->y, player_y, speed, towards);
+    }
+
+    // Try to move in the chosen direction
+    pntr_rectangle rect = { obj->x + move_x, obj->y + move_y, obj->width, obj->height };
+    if (!adventure_check_static_collision(map, collision_layer, &rect)) {
+        obj->x += move_x;
+        obj->y += move_y;
+    } else {
+        // Try moving only in x
+        pntr_rectangle rect_x = { obj->x + move_x, obj->y, obj->width, obj->height };
+        if (!adventure_check_static_collision(map, collision_layer, &rect_x)) {
+            obj->x += move_x;
+        } else {
+            // Try moving only in y
+            pntr_rectangle rect_y = { obj->x, obj->y + move_y, obj->width, obj->height };
+            if (!adventure_check_static_collision(map, collision_layer, &rect_y)) {
+                obj->y += move_y;
+            }
+        }
+    }
+}
+
+// same as adventure_move_object_relative_to_object, but has an awareness radius
+void adventure_move_object_relative_to_close_object(
+    cute_tiled_map_t* map,
+    cute_tiled_layer_t* collision_layer,
+    cute_tiled_object_t* obj,
+    float player_x,
+    float player_y,
+    float speed,
+    int towards,         // 1 = move towards, 0 = move away
+    int awareness        // radius in tiles
+) {
+    // Calculate tile positions
+    int obj_tile_x = (int)(obj->x / map->tilewidth);
+    int obj_tile_y = (int)(obj->y / map->tileheight);
+    int player_tile_x = (int)(player_x / map->tilewidth);
+    int player_tile_y = (int)(player_y / map->tileheight);
+
+    // Manhattan distance in tiles
+    int dx = abs(player_tile_x - obj_tile_x);
+    int dy = abs(player_tile_y - obj_tile_y);
+
+    if ((dx + dy) <= awareness) {
+        // Move only if within awareness radius
+        adventure_move_object_relative_to_object(
+            map,
+            collision_layer,
+            obj,
+            player_x,
+            player_y,
+            speed,
+            towards
+        );
+    }
+}
+
 
 // take a request for movement (after reading input) and fire callback on collision
 void adventure_try_to_move_player(pntr_app* app, adventure_map_t* maps, pntr_vector* req, pntr_rectangle* hitbox, AdventureCollisionCallback callback) {

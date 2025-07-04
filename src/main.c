@@ -282,7 +282,36 @@ bool Update(pntr_app* app, pntr_image* screen) {
             adventure_camera_look_at(&camera, screen, currentMap->map, currentMap->player);
         }
 
-        // TODO: update all objects that are not player
+        // update all objects that are not player
+
+        int random_offset_x = 0;
+        int random_offset_y = 0;
+        float random_speed = 0;
+        int random_awareness = 0;
+
+        if (currentMap->layer_objects != NULL) {
+           for (cute_tiled_object_t* obj = currentMap->layer_objects->objects; obj; obj = obj->next) {
+                if (obj->id != currentMap->player->id) {
+                    for (int i = 0; i < obj->property_count; i++) {
+                        cute_tiled_property_t* prop = &obj->properties[i];
+                        if (prop->type == CUTE_TILED_PROPERTY_BOOL) {
+                            random_offset_x = pntr_app_random(app, 0, 1);
+                            random_offset_y = pntr_app_random(app, 0, 1);
+                            random_speed =  pntr_app_random_float(app, 0, 100) / 100.0f;
+                            random_awareness = pntr_app_random(app, 1, 10);
+
+                            if (PNTR_STRCMP("follow", prop->name.ptr) == 0 && prop->data.boolean) {
+                                adventure_move_object_relative_to_close_object(currentMap->map,  currentMap->layer_collisions, obj,  currentMap->player->x + random_offset_x,  currentMap->player->y + random_offset_y, random_speed, 1, random_awareness);
+                            }
+                            if (PNTR_STRCMP("avoid", prop->name.ptr) == 0 && prop->data.boolean) {
+                                adventure_move_object_relative_to_close_object(currentMap->map,  currentMap->layer_collisions, obj, currentMap->player->x + random_offset_x,  currentMap->player->y + random_offset_y, random_speed, 0, random_awareness);
+                            }
+                        }
+                    } 
+                }
+            }
+        }
+
         
         pntr_update_tiled(currentMap->map,  dt);
         pntr_clear_background(screen, currentMap->map->backgroundcolor ? pntr_tiled_color(currentMap->map->backgroundcolor) : PNTR_BLACK);
