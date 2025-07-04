@@ -142,6 +142,11 @@
                          "name":"pos_y",
                          "type":"int",
                          "value":48
+                        }, 
+                        {
+                         "name":"sound",
+                         "type":"string",
+                         "value":"activate"
                         }],
                  "rotation":0,
                  "type":"portal",
@@ -175,6 +180,11 @@
                  "name":"welcome",
                  "properties":[
                         {
+                         "name":"sound",
+                         "type":"string",
+                         "value":"activate"
+                        }, 
+                        {
                          "name":"text",
                          "type":"string",
                          "value":"Hello!\nWelcome to Welcome Island."
@@ -200,7 +210,7 @@
                         {
                          "name":"follow",
                          "type":"bool",
-                         "value":false
+                         "value":true
                         }],
                  "rotation":0,
                  "type":"enemy",
@@ -223,7 +233,7 @@
                         {
                          "name":"follow",
                          "type":"bool",
-                         "value":false
+                         "value":true
                         }],
                  "rotation":0,
                  "type":"enemy",
@@ -246,7 +256,7 @@
                         {
                          "name":"follow",
                          "type":"bool",
-                         "value":false
+                         "value":true
                         }],
                  "rotation":0,
                  "type":"enemy",
@@ -269,7 +279,7 @@
                         {
                          "name":"follow",
                          "type":"bool",
-                         "value":false
+                         "value":true
                         }],
                  "rotation":0,
                  "type":"enemy",
@@ -287,7 +297,7 @@
                         {
                          "name":"avoid",
                          "type":"bool",
-                         "value":false
+                         "value":true
                         }, 
                         {
                          "name":"follow",
@@ -305,12 +315,12 @@
                  "gid":25,
                  "height":16,
                  "id":97,
-                 "name":"naked",
+                 "name":"killerbaby",
                  "properties":[
                         {
                          "name":"avoid",
                          "type":"bool",
-                         "value":false
+                         "value":true
                         }, 
                         {
                          "name":"follow",

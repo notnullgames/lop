@@ -142,6 +142,14 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
                     pntr_play_sound(s->sound, false);
                 }
             }
+            else if (PNTR_STRCMP(object->type.ptr, "enemy") == 0) {
+                gemCount -= value;
+                bump_back(subject, 8);
+                sound_holder_t* s = sfx_load(&sounds, app, "assets/rfx/hurt.rfx");
+                if (s != NULL && s->sound != NULL) {
+                    pntr_play_sound(s->sound, false);
+                }
+            }
         }
 
         // anything can have a sound prop

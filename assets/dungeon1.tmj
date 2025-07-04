@@ -69,6 +69,11 @@
                          "name":"pos_y",
                          "type":"int",
                          "value":192
+                        }, 
+                        {
+                         "name":"sound",
+                         "type":"string",
+                         "value":"activate"
                         }],
                  "rotation":0,
                  "type":"portal",

@@ -73,7 +73,10 @@ sound_holder_t* sound_load(sound_holder_t** sounds, pntr_app* app, char* filenam
 void sounds_unload(sound_holder_t** sounds) {
     if (sounds && *sounds) {
         sound_holder_t* to_free = *sounds;
+        if ((*sounds)->params != NULL) {
+            pntr_unload_memory((*sounds)->params);
+        }
         *sounds = (*sounds)->next;
-        free(to_free);
+        pntr_unload_memory(to_free);
     }
 }
