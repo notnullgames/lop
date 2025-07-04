@@ -60,8 +60,7 @@ static void bump_back(cute_tiled_object_t* character, float player_speed) {
     int gid_character = character->gid / 12;
     int gid_direction = character->gid % 4;
     int gid_direction_opposite = gid_direction ^ 1;
-
-    printf("bump back: %d %d\n", gid_character, gid_direction, gid_direction_opposite);
+    
     character->gid = (gid_character * 12) + 1 + (gid_direction_opposite * 3);
 
     // Direction deltas: S, N, E, W
