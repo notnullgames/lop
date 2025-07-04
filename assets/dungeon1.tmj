@@ -99,9 +99,14 @@
                          "value":false
                         }, 
                         {
+                         "name":"name",
+                         "type":"string",
+                         "value":"Oreo"
+                        }, 
+                        {
                          "name":"text",
                          "type":"string",
-                         "value":"Feel free to take any gems\nI'm not going to use them.\nOh! did you think I was bad?\nWell, I'm not."
+                         "value":"Hey!\nFeel free to have any of my coins.\nI won't use them. Watch for my brother."
                         }],
                  "rotation":0,
                  "type":"musing",
@@ -229,7 +234,7 @@
                  "visible":true,
                  "width":16,
                  "x":112,
-                 "y":32
+                 "y":64
                 }, 
                 {
                  "gid":160,
@@ -301,6 +306,24 @@
                  "width":16,
                  "x":48,
                  "y":64
+                }, 
+                {
+                 "gid":62,
+                 "height":16,
+                 "id":66,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"follow",
+                         "type":"bool",
+                         "value":true
+                        }],
+                 "rotation":0,
+                 "type":"enemy",
+                 "visible":true,
+                 "width":16,
+                 "x":16,
+                 "y":128
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -331,7 +354,7 @@
          "y":0
         }],
  "nextlayerid":13,
- "nextobjectid":66,
+ "nextobjectid":70,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

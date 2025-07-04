@@ -36,6 +36,7 @@ static int gid_direction = 0;
 
 // if there is a current-dialog, it triggers game to pause
 static char dialogText[1024] = {0};
+static char dialogName[1024] = {0};
 
 // set this to false, for 1-time render
 static bool shownDialog = true;
@@ -82,41 +83,64 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
     if (object == NULL) {
         pntr_app_log_ex(PNTR_APP_LOG_DEBUG,"Map: %s bumped static\n", subject->name.ptr);
     } else {
-        // get all properties from object
-        char sound[PNTR_PATH_MAX] = {0};
-        int value = 1;
-
-        for (int i = 0; i < object->property_count; i++) {
-            cute_tiled_property_t* prop = &object->properties[i];
-            if (prop->type == CUTE_TILED_PROPERTY_STRING) {
-                if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
-                    dialogText[0] = 0;
-                    PNTR_STRCAT(dialogText, prop->data.string.ptr);
-                    shownDialog = false;
-                }
-                else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
-                    PNTR_STRCAT(sound, "assets/rfx/");
-                    PNTR_STRCAT(sound, prop->data.string.ptr);
-                    PNTR_STRCAT(sound, ".rfx");
-                }
-                else if (PNTR_STRCMP("facing", prop->name.ptr) == 0) {
-                    // TODO: use this to set directiopn of player on portal
-                }
-            }
-            else if (prop->type == CUTE_TILED_PROPERTY_INT) {
-                if (PNTR_STRCMP("pos_x", prop->name.ptr) == 0) {
-                    // TODO: use this to set position of player on portal
-                }
-                else if (PNTR_STRCMP("pos_y", prop->name.ptr) == 0) {
-                    // TODO: use this to set position of player on portal
-                }
-                else if (PNTR_STRCMP("value", prop->name.ptr) == 0) {
-                    value = prop->data.integer;
-                }
-            }
-        }
-
+        // action only happens when it's the player
         if (PNTR_STRCMP(subject->name.ptr, "player") == 0) {
+            // get all properties from object
+            char sound[PNTR_PATH_MAX] = {0};
+            int value = 1;
+
+            int pos_x = 0;
+            int pos_y = 0;
+            bool setpos = false;
+
+            for (int i = 0; i < object->property_count; i++) {
+                cute_tiled_property_t* prop = &object->properties[i];
+
+                if (prop->type == CUTE_TILED_PROPERTY_STRING) {
+                    if (PNTR_STRCMP("text", prop->name.ptr) == 0) {
+                        dialogText[0] = 0;
+                        PNTR_STRCAT(dialogText, prop->data.string.ptr);
+                        shownDialog = false;
+                    }
+
+                    if (PNTR_STRCMP("name", prop->name.ptr) == 0) {
+                        PNTR_STRCAT(dialogName, prop->data.string.ptr);
+                    }
+                    
+                    else if (PNTR_STRCMP("sound", prop->name.ptr) == 0) {
+                        PNTR_STRCAT(sound, "assets/rfx/");
+                        PNTR_STRCAT(sound, prop->data.string.ptr);
+                        PNTR_STRCAT(sound, ".rfx");
+                    }
+                    else if (PNTR_STRCMP("facing", prop->name.ptr) == 0) {
+                        // TODO: use this to set directiopn of player on portal
+                    }
+                }
+                else if (prop->type == CUTE_TILED_PROPERTY_INT) {
+                    if (PNTR_STRCMP("pos_x", prop->name.ptr) == 0) {
+                        pos_x = prop->data.integer;
+                        setpos = true;
+                    }
+                    else if (PNTR_STRCMP("pos_y", prop->name.ptr) == 0) {
+                        pos_y = prop->data.integer;
+                        setpos = true;
+                    }
+                    else if (PNTR_STRCMP("value", prop->name.ptr) == 0) {
+                        value = prop->data.integer;
+                    }
+                }
+            }
+
+            // Now we use all the props
+
+            // anything can have a sound prop
+            if (sound[0] != 0) {
+                sound_holder_t* s = sfx_load(&sounds, app, sound);
+                if (s != NULL && s->sound != NULL) {
+                    pntr_play_sound(s->sound, false);
+                }
+            }
+
             if (PNTR_STRCMP(object->type.ptr, "portal") == 0) {
                 // portal name is the map it links to
                 char filename[PNTR_PATH_MAX] = {0};
@@ -124,6 +148,10 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
                 PNTR_STRCAT(filename, object->name.ptr);
                 PNTR_STRCAT(filename, ".tmj");
                 currentMap = adventure_load(filename, &maps);
+                if (setpos && currentMap != NULL && currentMap->player != NULL) {
+                    currentMap->player->x = pos_y;
+                    currentMap->player->y = pos_y;
+                }
             }
             else if (PNTR_STRCMP(object->type.ptr, "loot") == 0) {
                 object->visible = false;
@@ -149,14 +177,6 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
                 if (s != NULL && s->sound != NULL) {
                     pntr_play_sound(s->sound, false);
                 }
-            }
-        }
-
-        // anything can have a sound prop
-        if (sound[0] != 0) {
-            sound_holder_t* s = sfx_load(&sounds, app, sound);
-            if (s != NULL && s->sound != NULL) {
-                pntr_play_sound(s->sound, false);
             }
         }
     }
@@ -237,10 +257,14 @@ bool Update(pntr_app* app, pntr_image* screen) {
             adventure_map_t* dialogMap = adventure_load("assets/dialog.tmj", &maps);
             pntr_draw_tiled(screen, dialogMap->map, 0, 0, PNTR_WHITE);
             pntr_draw_text_wrapped(screen, font, dialogText, 20, 180, 280, PNTR_RAYWHITE);
+            if (dialogName[0] != 0) {
+                pntr_draw_text_wrapped(screen, font, dialogName, 20, 160, 280, PNTR_RAYWHITE);
+            }
         }
         // close on SPACE
         if (pntr_app_key_down(app, PNTR_APP_KEY_SPACE)) {
             dialogText[0] = 0;
+            dialogName[0] = 0;
         }
         return true;
     }

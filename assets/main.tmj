@@ -243,29 +243,6 @@
                  "y":240
                 }, 
                 {
-                 "gid":61,
-                 "height":16,
-                 "id":94,
-                 "name":"skeleton",
-                 "properties":[
-                        {
-                         "name":"avoid",
-                         "type":"bool",
-                         "value":false
-                        }, 
-                        {
-                         "name":"follow",
-                         "type":"bool",
-                         "value":true
-                        }],
-                 "rotation":0,
-                 "type":"enemy",
-                 "visible":true,
-                 "width":16,
-                 "x":224,
-                 "y":240
-                }, 
-                {
                  "gid":73,
                  "height":16,
                  "id":95,
@@ -285,8 +262,8 @@
                  "type":"enemy",
                  "visible":true,
                  "width":16,
-                 "x":240,
-                 "y":240
+                 "x":192,
+                 "y":272
                 }, 
                 {
                  "gid":85,
@@ -312,27 +289,27 @@
                  "y":240
                 }, 
                 {
-                 "gid":25,
+                 "gid":127,
                  "height":16,
-                 "id":97,
-                 "name":"killerbaby",
+                 "id":192,
+                 "name":"babyroom",
                  "properties":[
                         {
-                         "name":"avoid",
-                         "type":"bool",
-                         "value":true
+                         "name":"pos_x",
+                         "type":"int",
+                         "value":80
                         }, 
                         {
-                         "name":"follow",
-                         "type":"bool",
-                         "value":false
+                         "name":"pos_y",
+                         "type":"int",
+                         "value":192
                         }],
                  "rotation":0,
-                 "type":"enemy",
+                 "type":"portal",
                  "visible":true,
                  "width":16,
-                 "x":272,
-                 "y":240
+                 "x":304,
+                 "y":128
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -444,7 +421,7 @@
          "y":0
         }],
  "nextlayerid":14,
- "nextobjectid":192,
+ "nextobjectid":193,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
