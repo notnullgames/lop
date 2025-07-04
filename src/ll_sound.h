@@ -1,4 +1,5 @@
-// this is a linked-list for sounds
+// this is a linked-list for sfx/sounds
+// it lets you just laod the sound, and if it's already been loaded, it will return that.
 
 #include "pntr_app_sfx.h"
 
@@ -66,4 +67,13 @@ sound_holder_t* sound_load(sound_holder_t** sounds, pntr_app* app, char* filenam
 
     LL_PUSH(*sounds, current);
     return current;
+}
+
+// free the current head of the list
+void sounds_unload(sound_holder_t** sounds) {
+    if (sounds && *sounds) {
+        sound_holder_t* to_free = *sounds;
+        *sounds = (*sounds)->next;
+        free(to_free);
+    }
 }

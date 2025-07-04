@@ -167,8 +167,12 @@ void Close(pntr_app* app) {
     while(maps != NULL) {
        adventure_unload(&maps);
     }
-    // TODO: unload sounds
-    // TODO: unload unfired animations
+    while(animations != NULL) {
+       animation_queue_unload(&animations);
+    }
+    while(sounds != NULL) {
+       sounds_unload(&sounds);
+    }
 }
 
 

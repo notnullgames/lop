@@ -56,3 +56,12 @@ void animation_queue_run(animation_queue_t** animations, float dt) {
         }
     }
 }
+
+// free the current head of the list
+void animation_queue_unload(animation_queue_t** animations) {
+    if (animations && *animations) {
+        animation_queue_t* to_free = *animations;
+        *animations = (*animations)->next;
+        free(to_free);
+    }
+}
