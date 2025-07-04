@@ -130,6 +130,9 @@ void CollisionCallback(pntr_app* app, adventure_map_t* mapContainer, cute_tiled_
                 object->visible = false;
                 gemCount += value;
             }
+
+            // traps have 3 frames, with animation in middle
+            // this will animate, wait 0.4s, then  go back to "default state"
             else if (PNTR_STRCMP(object->type.ptr, "trap") == 0) {
                 set_gid(object, 0, 1);
                 gemCount -= value;
