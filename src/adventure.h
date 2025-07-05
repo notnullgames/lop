@@ -205,7 +205,8 @@ void adventure_try_to_move_player(pntr_app* app, adventure_map_t* maps, pntr_vec
         }
     }
 
-    if (!collision_static && !collision_objects) {
+    // if (!collision_static && !collision_objects) {
+    if (!collision_static) {
         maps->player->x += req->x;
         maps->player->y += req->y;
     }

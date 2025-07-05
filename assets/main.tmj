@@ -106,6 +106,7 @@
          "y":0
         }, 
         {
+         "class":"ysort",
          "draworder":"topdown",
          "id":6,
          "name":"objects",
@@ -313,6 +314,18 @@
                  "width":16,
                  "x":240,
                  "y":288
+                }, 
+                {
+                 "gid":233,
+                 "height":16,
+                 "id":196,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":416,
+                 "y":256
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -424,7 +437,7 @@
          "y":0
         }],
  "nextlayerid":14,
- "nextobjectid":196,
+ "nextobjectid":197,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
