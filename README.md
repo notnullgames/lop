@@ -4,9 +4,6 @@ I create a game-map style `adventure.h`, and a little user-code to define what h
 
 ![screenshot](screenshot.png)
 
-I am using [this fork of pntr_tiled](https://github.com/RobLoach/pntr_tiled/pull/24) that has external tilesheets and better object-support.
-
-
 I added some no-install convenience scripts, if you have node installed:
 
 ```bash
@@ -37,5 +34,5 @@ npm run clean
 
 Add a couple object-layers to your map:
 
-- `objects` - put the player & anything they interact with here. Collision is based on player-hitbox (covers the body) to whole-tile.
+- `objects` - put the player & anything they interact with here. Collision is based on player-hitbox (covers the body) to whole-tile. set class to `ysort` to get that behavior.
 - `collisions` - I also want non-interactive (static geometry) collisions, but there some issues: cute_tiled does not like shapes, etc. I just used regular tiles here. it's not as fine-grained, but works fine for simple game
