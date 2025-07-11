@@ -16,17 +16,23 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_C_FLAGS_DEBUG "-g -O0")
 endif()
 
-
 FetchContent_Declare(pntr URL https://github.com/RobLoach/pntr/archive/refs/heads/master.zip)
 FetchContent_MakeAvailable(pntr)
 
 FetchContent_Declare(pntr_app URL https://github.com/RobLoach/pntr_app/archive/refs/heads/master.zip)
 FetchContent_MakeAvailable(pntr_app)
 
+FetchContent_Declare(pntr_tiled URL https://github.com/RobLoach/pntr_tiled/archive/refs/heads/master.zip)
+FetchContent_MakeAvailable(pntr_tiled)
+
+FetchContent_Declare(pntr_app_sfx URL https://github.com/konsumer/pntr_app_sfx/archive/refs/heads/main.zip)
+FetchContent_MakeAvailable(pntr_app_sfx)
 
 FILE(GLOB SRC_FILES src/*.c)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} pntr pntr_app)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} pntr pntr_app pntr_tiled)
+target_include_directories(${PROJECT_NAME} PUBLIC ${pntr_app_sfx_SOURCE_DIR})
+
 
 IF (EMSCRIPTEN)
   ADD_COMPILE_DEFINITIONS(PNTR_APP_WEB)
